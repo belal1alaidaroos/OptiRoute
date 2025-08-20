@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import apiClient from '../../lib/apiClient';
 import { 
   PaletteIcon,
   SunIcon,
@@ -16,6 +17,8 @@ const AppearanceSettings = () => {
   const [primaryColor, setPrimaryColor] = useState('#3B82F6');
   const [fontFamily, setFontFamily] = useState('Inter');
   const [layoutMode, setLayoutMode] = useState('fluid');
+  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
 
   const colorOptions = [
@@ -41,12 +44,36 @@ const AppearanceSettings = () => {
     { name: 'Compact', value: 'compact' },
   ];
 
-  const applySettings = () => {
-    // Apply settings to the app
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        const res = await apiClient.get('/appearance-settings');
+        if (res.data) {
+          setTheme(res.data.theme || 'light');
+          setPrimaryColor(res.data.primaryColor || '#3B82F6');
+          setFontFamily(res.data.fontFamily || 'Inter');
+          setLayoutMode(res.data.layoutMode || 'fluid');
+        }
+      } catch {}
+      setLoading(false);
+    };
+    load();
+  }, []);
+
+  const applySettings = async () => {
     document.documentElement.style.setProperty('--primary-color', primaryColor);
     document.documentElement.style.setProperty('--font-family', fontFamily);
-    // Add logic to apply other settings
-    alert('Appearance settings applied successfully!');
+    setSaving(true);
+    try {
+      await apiClient.put('/appearance-settings', {
+        theme,
+        primaryColor,
+        fontFamily,
+        layoutMode
+      });
+    } catch {}
+    setSaving(false);
   };
 
   return (
@@ -74,6 +101,7 @@ const AppearanceSettings = () => {
         }}>
           Appearance Settings
         </h2>
+        {loading && <span style={{ color: '#6B7280', fontSize: '14px' }}>Loading...</span>}
       </div>
 
       {/* Tabs */}
@@ -363,7 +391,7 @@ const AppearanceSettings = () => {
             onClick={applySettings}
             style={{
               padding: '12px 24px',
-              background: primaryColor,
+              background: saving ? '#93C5FD' : primaryColor,
               color: 'white',
               border: 'none',
               borderRadius: '8px',
@@ -371,8 +399,9 @@ const AppearanceSettings = () => {
               fontWeight: '600',
               fontSize: '16px'
             }}
+            disabled={saving}
           >
-            Apply Settings
+            {saving ? 'Saving...' : 'Apply & Save'}
           </button>
         </div>
       </div>
