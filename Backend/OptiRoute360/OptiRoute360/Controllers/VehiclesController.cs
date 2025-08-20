@@ -46,6 +46,45 @@ namespace OptiRoute360.Controllers
             return Ok(_mapper.Map<IEnumerable<VehicleDto>>(vehicles));
         }
 
+        [HttpPost]
+        [Authorize(Roles = "Admin,FleetManager")]
+        public async Task<ActionResult<VehicleDto>> Create([FromBody] CreateVehicleDto dto)
+        {
+            var entity = _mapper.Map<Vehicle>(dto);
+            await _vehicleRepository.AddAsync(entity);
+            await _vehicleRepository.SaveChangesAsync();
+            return CreatedAtAction(nameof(GetByIdInternal), new { id = entity.Id, version = "1.0" }, _mapper.Map<VehicleDto>(entity));
+        }
+
+        [HttpGet("{id}")]
+        public async Task<ActionResult<VehicleDto>> GetByIdInternal(Guid id)
+        {
+            var entity = await _vehicleRepository.GetByIdAsync(id);
+            if (entity == null) return NotFound();
+            return Ok(_mapper.Map<VehicleDto>(entity));
+        }
+
+        [HttpPut("{id}")]
+        [Authorize(Roles = "Admin,FleetManager")]
+        public async Task<IActionResult> Update(Guid id, [FromBody] UpdateVehicleDto dto)
+        {
+            var entity = await _vehicleRepository.GetByIdAsync(id);
+            if (entity == null) return NotFound();
+            _mapper.Map(dto, entity);
+            await _vehicleRepository.UpdateAsync(entity);
+            return NoContent();
+        }
+
+        [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin,FleetManager")]
+        public async Task<IActionResult> Delete(Guid id)
+        {
+            var entity = await _vehicleRepository.GetByIdAsync(id);
+            if (entity == null) return NotFound();
+            await _vehicleRepository.DeleteAsync(entity);
+            return NoContent();
+        }
+
         [HttpPost("bulk-assign-driver")]
         [Authorize(Roles = "Admin,FleetManager")]
         public async Task<IActionResult> BulkAssignDriver([FromBody] BulkAssignDriverDto dto)

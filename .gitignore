@@ -1,0 +1,23 @@
+# Node
+FrontEnd/node_modules/
+FrontEnd/.env
+FrontEnd/.env.*
+FrontEnd/dist/
+
+# .NET
+Backend/**/bin/
+Backend/**/obj/
+Backend/**/appsettings.Local.json
+Backend/**/appsettings.*.local.json
+Backend/**/secrets.json
+Backend/**/.env
+
+# OS/Editor
+.DS_Store
+*.swp
+.vscode/
+.idea/
+*.user
+*.suo
+*.cache
+

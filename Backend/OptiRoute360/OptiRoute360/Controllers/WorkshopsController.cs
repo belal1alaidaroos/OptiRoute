@@ -74,5 +74,36 @@ namespace OptiRoute360.Controllers
         }
 
         private static double ToRadians(double angle) => angle * (Math.PI / 180);
+
+        [HttpPost]
+        [Authorize(Roles = "Admin,FleetManager")]
+        public async Task<ActionResult<WorkshopDto>> Create([FromBody] CreateWorkshopDto dto)
+        {
+            var entity = _mapper.Map<Workshop>(dto);
+            await _repository.AddAsync(entity);
+            await _repository.SaveChangesAsync();
+            return CreatedAtAction(nameof(GetAll), new { version = "1.0" }, _mapper.Map<WorkshopDto>(entity));
+        }
+
+        [HttpPut("{id}")]
+        [Authorize(Roles = "Admin,FleetManager")]
+        public async Task<IActionResult> Update(Guid id, [FromBody] CreateWorkshopDto dto)
+        {
+            var entity = await _repository.GetByIdAsync(id);
+            if (entity == null) return NotFound();
+            _mapper.Map(dto, entity);
+            await _repository.UpdateAsync(entity);
+            return NoContent();
+        }
+
+        [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin,FleetManager")]
+        public async Task<IActionResult> Delete(Guid id)
+        {
+            var entity = await _repository.GetByIdAsync(id);
+            if (entity == null) return NotFound();
+            await _repository.DeleteAsync(entity);
+            return NoContent();
+        }
     }
 }
