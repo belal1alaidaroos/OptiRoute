@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   BellIcon,
   CheckIcon,
@@ -7,6 +7,7 @@ import {
   ToggleLeftIcon,
   ToggleRightIcon 
 } from '../../components/icons/SVGIcons';
+import apiClient from '../../lib/apiClient';
 
 const NotificationSettings = () => {
   const [settings, setSettings] = useState({
@@ -19,6 +20,31 @@ const NotificationSettings = () => {
     soundEnabled: true,
     vibrationEnabled: false
   });
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setLoading(true);
+        const { data } = await apiClient.get('/notification-settings');
+        if (data) setSettings({
+          emailNotifications: data.emailNotifications,
+          smsNotifications: data.smsNotifications,
+          pushNotifications: data.pushNotifications,
+          maintenanceAlerts: data.maintenanceAlerts,
+          routeUpdates: data.routeUpdates,
+          deliveryStatus: data.deliveryStatus,
+          soundEnabled: data.soundEnabled,
+          vibrationEnabled: data.vibrationEnabled
+        });
+      } catch (err) {
+        console.error('Failed to load notification settings', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
 
   const toggleSetting = (key) => {
     setSettings(prev => ({
@@ -27,8 +53,17 @@ const NotificationSettings = () => {
     }));
   };
 
-  const handleSave = () => {
-    alert('Notification settings saved!');
+  const handleSave = async () => {
+    try {
+      setLoading(true);
+      await apiClient.put('/notification-settings', settings);
+      alert('Notification settings saved!');
+    } catch (err) {
+      console.error('Failed to save notification settings', err);
+      alert('Failed to save settings');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleReset = () => {

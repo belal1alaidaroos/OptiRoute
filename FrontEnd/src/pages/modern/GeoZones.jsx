@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   PlusIcon, 
   SearchIcon, 
@@ -20,20 +20,31 @@ import {
   SelectField,
   StatusBadge
 } from '../../components/shared/UnifiedDesignComponents';
+import apiClient from '../../lib/apiClient';
 
 const GeoZones = () => {
-  const [zones, setZones] = useState([
-    { id: 1, name: 'Central Riyadh', cityId: 1, description: 'Central business district', status: 'Active' },
-    { id: 2, name: 'Northern Riyadh', cityId: 1, description: 'Residential areas', status: 'Active' },
-    { id: 3, name: 'Eastern Dammam', cityId: 2, description: 'Industrial zone', status: 'Inactive' }
-  ]);
+  const [zones, setZones] = useState([]);
 
-  const [cities] = useState([
-    { id: 1, name: 'Riyadh' },
-    { id: 2, name: 'Dammam' },
-    { id: 3, name: 'Jeddah' },
-    { id: 4, name: 'Mecca' }
-  ]);
+  const [cities, setCities] = useState([]);
+  const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setLoading(true);
+        const [citiesRes, zonesRes] = await Promise.all([
+          apiClient.get('/cities'),
+          apiClient.get('/geo-zones')
+        ]);
+        setCities(citiesRes.data || []);
+        setZones(zonesRes.data || []);
+      } catch (err) {
+        console.error('Failed to load geo zones', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentZone, setCurrentZone] = useState(null);
@@ -79,28 +90,43 @@ const GeoZones = () => {
     setToast({ message: `Viewing ${zone.name} zone`, type: 'info' });
   };
 
-  const handleDelete = (zone) => {
-    setZones(zones.filter(z => z.id !== zone.id));
-    setToast({ message: `${zone.name} zone deleted`, type: 'success' });
+  const handleDelete = async (zone) => {
+    try {
+      await apiClient.delete(`/geo-zones/${zone.id}`);
+      setZones(zones.filter(z => z.id !== zone.id));
+      setToast({ message: `${zone.name} zone deleted`, type: 'success' });
+    } catch (err) {
+      console.error('Failed to delete zone', err);
+    }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (currentZone) {
-      const updatedZones = zones.map(z => 
-        z.id === currentZone.id ? { ...z, ...formData } : z
-      );
-      setZones(updatedZones);
-      setToast({ message: `${formData.name} zone updated`, type: 'success' });
-    } else {
-      const newZone = {
-        id: Math.max(...zones.map(z => z.id)) + 1,
-        ...formData
-      };
-      setZones([...zones, newZone]);
-      setToast({ message: `${formData.name} zone added`, type: 'success' });
+    try {
+      setLoading(true);
+      if (currentZone) {
+        await apiClient.put(`/geo-zones/${currentZone.id}`, {
+          name: formData.name,
+          cityId: formData.cityId,
+          description: formData.description,
+          status: formData.status
+        });
+      } else {
+        await apiClient.post('/geo-zones', {
+          name: formData.name,
+          cityId: formData.cityId,
+          description: formData.description
+        });
+      }
+      const { data } = await apiClient.get('/geo-zones');
+      setZones(data || []);
+      setToast({ message: currentZone ? `${formData.name} zone updated` : `${formData.name} zone added`, type: 'success' });
+      setIsModalOpen(false);
+    } catch (err) {
+      console.error('Failed to save zone', err);
+    } finally {
+      setLoading(false);
     }
-    setIsModalOpen(false);
   };
 
   return (

@@ -13,6 +13,7 @@ import {
   PencilIcon,
   XIcon
 } from '../../components/icons/SVGIcons';
+import apiClient from '../../lib/apiClient';
 
 const MaintenanceFixed = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -26,64 +27,40 @@ const MaintenanceFixed = () => {
   const [maintenanceTypes, setMaintenanceTypes] = useState([]);
   const [workshops, setWorkshops] = useState([]);
   
-  // Mock data for lookups
+  // Load lookups
   useEffect(() => {
-    setCities([
-      { id: 1, name: 'Riyadh' },
-      { id: 2, name: 'Jeddah' },
-      { id: 3, name: 'Dammam' }
-    ]);
-    
-    setHubs([
-      { id: 1, name: 'Main Hub', cityId: 1 },
-      { id: 2, name: 'North Hub', cityId: 1 },
-      { id: 3, name: 'Coastal Hub', cityId: 2 }
-    ]);
-    
-    setMaintenanceTypes([
-      { id: 1, name: 'Scheduled Service' },
-      { id: 2, name: 'Emergency Repair' },
-      { id: 3, name: 'Tire Replacement' },
-      { id: 4, name: 'Brake Inspection' }
-    ]);
-    
-    setWorkshops([
-      { id: 1, name: 'Al-Riyadh Auto Service', cityId: 1 },
-      { id: 2, name: 'Modern Fleet Maintenance', cityId: 1 },
-      { id: 3, name: 'Jeddah Auto Care', cityId: 2 }
-    ]);
+    const loadLookups = async () => {
+      try {
+        const [citiesRes, hubsRes, typesRes, workshopsRes] = await Promise.all([
+          apiClient.get('/cities'),
+          apiClient.get('/hubs'),
+          apiClient.get('/maintenance-types'),
+          apiClient.get('/workshops')
+        ]);
+        setCities(citiesRes.data || []);
+        setHubs(hubsRes.data || []);
+        setMaintenanceTypes(typesRes.data || []);
+        setWorkshops(workshopsRes.data || []);
+      } catch (err) {
+        console.error('Failed to load lookups', err);
+      }
+    };
+    loadLookups();
   }, []);
 
-  const [maintenanceJobs, setMaintenanceJobs] = useState([
-    {
-      id: 1,
-      vehiclePlate: 'ABC-123',
-      maintenanceTypeId: 1,
-      description: 'Oil change and filter replacement',
-      priority: 'Medium',
-      status: 'In Progress',
-      scheduledDate: '2024-01-15',
-      workshopId: 1,
-      cityId: 1,
-      hubId: 1,
-      estimatedCost: '450 SAR',
-      estimatedDuration: '2 hours'
-    },
-    {
-      id: 2,
-      vehiclePlate: 'XYZ-456',
-      maintenanceTypeId: 2,
-      description: 'Brake system malfunction',
-      priority: 'High',
-      status: 'Pending',
-      scheduledDate: '2024-01-16',
-      workshopId: 2,
-      cityId: 1,
-      hubId: 2,
-      estimatedCost: '1,200 SAR',
-      estimatedDuration: '4 hours'
-    }
-  ]);
+  const [maintenanceJobs, setMaintenanceJobs] = useState([]);
+
+  useEffect(() => {
+    const loadJobs = async () => {
+      try {
+        const { data } = await apiClient.get('/maintenance');
+        setMaintenanceJobs(data || []);
+      } catch (err) {
+        console.error('Failed to load maintenance jobs', err);
+      }
+    };
+    loadJobs();
+  }, []);
 
   const filteredJobs = maintenanceJobs.filter(job =>
     job.vehiclePlate.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -96,22 +73,36 @@ const MaintenanceFixed = () => {
   const getMaintenanceTypeName = (id) => maintenanceTypes.find(type => type.id === id)?.name || 'N/A';
   const getWorkshopName = (id) => workshops.find(workshop => workshop.id === id)?.name || 'N/A';
 
-  const handleCreate = (newJob) => {
-    const nextId = Math.max(...maintenanceJobs.map(job => job.id), 0) + 1;
-    setMaintenanceJobs([...maintenanceJobs, { ...newJob, id: nextId }]);
-    setShowAddModal(false);
+  const handleCreate = async (newJob) => {
+    try {
+      await apiClient.post('/maintenance', newJob);
+      const { data } = await apiClient.get('/maintenance');
+      setMaintenanceJobs(data || []);
+      setShowAddModal(false);
+    } catch (err) {
+      console.error('Failed to create maintenance', err);
+    }
   };
 
-  const handleUpdate = (updatedJob) => {
-    setMaintenanceJobs(maintenanceJobs.map(job => 
-      job.id === updatedJob.id ? updatedJob : job
-    ));
-    setShowEditModal(false);
+  const handleUpdate = async (updatedJob) => {
+    try {
+      await apiClient.put(`/maintenance/${updatedJob.id}`, updatedJob);
+      const { data } = await apiClient.get('/maintenance');
+      setMaintenanceJobs(data || []);
+      setShowEditModal(false);
+    } catch (err) {
+      console.error('Failed to update maintenance', err);
+    }
   };
 
-  const handleDelete = (id) => {
-    setMaintenanceJobs(maintenanceJobs.filter(job => job.id !== id));
-    setShowDeleteModal(false);
+  const handleDelete = async (id) => {
+    try {
+      await apiClient.delete(`/maintenance/${id}`);
+      setMaintenanceJobs(maintenanceJobs.filter(job => job.id !== id));
+      setShowDeleteModal(false);
+    } catch (err) {
+      console.error('Failed to delete maintenance', err);
+    }
   };
 
   const openViewModal = (job) => {

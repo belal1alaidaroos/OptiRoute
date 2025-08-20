@@ -13,10 +13,11 @@ import {
   BuildingOfficeIcon
 } from '../../components/icons/SVGIcons';
 // BuildingOfficeIcon component
+import apiClientRoot from '../../lib/apiClientRoot';
  
 
 const PermissionMatrix = () => {
-  const [selectedRole, setSelectedRole] = useState('Manager');
+  const [selectedRole, setSelectedRole] = useState('');
   const [permissionsConfig, setPermissionsConfig] = useState({});
   const [isEditingRole, setIsEditingRole] = useState(false);
   const [newRoleName, setNewRoleName] = useState('');
@@ -25,6 +26,7 @@ const PermissionMatrix = () => {
   const [saveStatus, setSaveStatus] = useState(null);
   const [initialPermissions, setInitialPermissions] = useState({});
   const [currentUserRole, setCurrentUserRole] = useState('SuperAdmin'); // 'SuperAdmin' or 'TenantAdmin'
+  const [rolesList, setRolesList] = useState([]);
 
   // Define roles with tenant-specific permissions
   const roles = [
@@ -48,80 +50,41 @@ const PermissionMatrix = () => {
     { module: 'Tenant Management', permissions: ['View', 'Create', 'Edit', 'Delete'] }
   ];
 
-  // Initialize permissions configuration
+  // Load roles from backend
   useEffect(() => {
-    const config = {
-      'SuperAdmin': {
-        'Dashboard': ['View', 'Export'],
-        'Fleet Management': ['View', 'Create', 'Edit', 'Delete'],
-        'Operations': ['View', 'Create', 'Edit', 'Delete'],
-        'Tracking': ['View', 'Real-time Access'],
-        'Maintenance': ['View', 'Schedule', 'Update'],
-        'User Management': ['View', 'Create', 'Edit', 'Delete'],
-        'Settings': ['View', 'Edit'],
-        'Reports': ['View', 'Generate', 'Export'],
-        'Tenant Management': ['View', 'Create', 'Edit', 'Delete']
-      },
-      'TenantAdmin': {
-        'Dashboard': ['View', 'Export'],
-        'Fleet Management': ['View', 'Create', 'Edit'],
-        'Operations': ['View', 'Create', 'Edit'],
-        'Tracking': ['View', 'Real-time Access'],
-        'Maintenance': ['View', 'Schedule'],
-        'User Management': ['View', 'Create', 'Edit'],
-        'Settings': ['View'],
-        'Reports': ['View', 'Generate', 'Export'],
-        'Tenant Management': []
-      },
-      'Admin': {
-        'Dashboard': ['View', 'Export'],
-        'Fleet Management': ['View', 'Create', 'Edit', 'Delete'],
-        'Operations': ['View', 'Create', 'Edit', 'Delete'],
-        'Tracking': ['View', 'Real-time Access'],
-        'Maintenance': ['View', 'Schedule', 'Update'],
-        'User Management': ['View'],
-        'Settings': ['View'],
-        'Reports': ['View', 'Generate', 'Export'],
-        'Tenant Management': []
-      },
-      'Manager': {
-        'Dashboard': ['View', 'Export'],
-        'Fleet Management': ['View', 'Create', 'Edit'],
-        'Operations': ['View', 'Create', 'Edit'],
-        'Tracking': ['View', 'Real-time Access'],
-        'Maintenance': ['View', 'Schedule'],
-        'User Management': ['View'],
-        'Settings': ['View'],
-        'Reports': ['View', 'Generate', 'Export'],
-        'Tenant Management': []
-      },
-      'Driver': {
-        'Dashboard': ['View'],
-        'Fleet Management': ['View'],
-        'Operations': ['View'],
-        'Tracking': ['View'],
-        'Maintenance': ['View'],
-        'User Management': [],
-        'Settings': [],
-        'Reports': ['View'],
-        'Tenant Management': []
-      },
-      'Dispatcher': {
-        'Dashboard': ['View'],
-        'Fleet Management': ['View', 'Edit'],
-        'Operations': ['View', 'Create', 'Edit'],
-        'Tracking': ['View', 'Real-time Access'],
-        'Maintenance': ['View'],
-        'User Management': [],
-        'Settings': [],
-        'Reports': ['View', 'Generate'],
-        'Tenant Management': []
-      }
+    const loadRoles = async () => {
+      try {
+        const res = await apiClientRoot.get('/roles');
+        const list = res.data || [];
+        setRolesList(list);
+        if (list.length > 0) setSelectedRole(list[0].id);
+      } catch {}
     };
-    
-    setPermissionsConfig(config);
-    setInitialPermissions(JSON.parse(JSON.stringify(config)));
+    loadRoles();
   }, []);
+
+  // Load permissions for selected role
+  useEffect(() => {
+    const loadPerms = async () => {
+      if (!selectedRole) return;
+      try {
+        const res = await apiClientRoot.get(`/permissions/role/${selectedRole}`);
+        const matrix = {};
+        (res.data || []).forEach(p => {
+          const moduleName = p.entityName || 'General';
+          const perms = [];
+          if (p.read) perms.push('View');
+          if (p.create) perms.push('Create');
+          if (p.update) perms.push('Edit');
+          if (p.delete) perms.push('Delete');
+          matrix[moduleName] = perms;
+        });
+        setPermissionsConfig({ [selectedRole]: matrix });
+        setInitialPermissions(JSON.parse(JSON.stringify({ [selectedRole]: matrix })));
+      } catch {}
+    };
+    loadPerms();
+  }, [selectedRole]);
 
   const togglePermission = (module, permission) => {
     // Don't allow editing of system roles for non-super admins
@@ -131,6 +94,7 @@ const PermissionMatrix = () => {
     
     setPermissionsConfig(prev => {
       const newConfig = JSON.parse(JSON.stringify(prev)); // Deep clone
+      if (!newConfig[selectedRole]) newConfig[selectedRole] = {};
       const rolePerms = [...(newConfig[selectedRole][module] || [])];
       
       const permissionIndex = rolePerms.indexOf(permission);
@@ -152,18 +116,25 @@ const PermissionMatrix = () => {
     return permissionsConfig[selectedRole]?.[module]?.includes(permission) || false;
   };
 
-  const handleSaveChanges = () => {
+  const handleSaveChanges = async () => {
     setSaveStatus('saving');
-    
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const modules = permissionsConfig[selectedRole] || {};
+      const updates = Object.entries(modules).map(([entityName, perms]) => ({
+        roleId: selectedRole,
+        entityName,
+        read: perms.includes('View'),
+        create: perms.includes('Create'),
+        update: perms.includes('Edit'),
+        delete: perms.includes('Delete')
+      }));
+      await apiClientRoot.put('/permissions/bulk-update', { roleId: selectedRole, permissions: updates });
       setInitialPermissions(JSON.parse(JSON.stringify(permissionsConfig)));
       setSaveStatus('saved');
-      
-      setTimeout(() => {
-        setSaveStatus(null);
-      }, 2000);
-    }, 1000);
+      setTimeout(() => setSaveStatus(null), 2000);
+    } catch {
+      setSaveStatus(null);
+    }
   };
 
   const handleResetChanges = () => {
@@ -282,7 +253,7 @@ const PermissionMatrix = () => {
                 Total Roles
               </p>
               <p style={{ fontSize: '32px', fontWeight: '700', color: '#1F2937', margin: 0 }}>
-                {Object.keys(permissionsConfig).length}
+                {rolesList.length}
               </p>
             </div>
             <div style={{
@@ -386,9 +357,9 @@ const PermissionMatrix = () => {
                   minWidth: '200px'
                 }}
               >
-                {Object.keys(permissionsConfig).map(role => (
-                  <option key={role} value={role}>
-                    {role}
+                {rolesList.map(role => (
+                  <option key={role.id} value={role.id}>
+                    {role.name}
                   </option>
                 ))}
               </select>
@@ -420,8 +391,7 @@ const PermissionMatrix = () => {
             )}
             
             {/* Delete Role Button */}
-            {currentUserRole === 'SuperAdmin' && 
-              !roles.find(r => r.name === selectedRole)?.isSystemRole && (
+            {currentUserRole === 'SuperAdmin' && selectedRole && (
               <button
                 onClick={() => setShowDeleteConfirm(selectedRole)}
                 style={{
