@@ -35,6 +35,14 @@ namespace OptiRoute360.Controllers
             _mapper = mapper;
         }
 
+        [HttpGet]
+        [Authorize(Roles = "Admin,FleetManager")]
+        public async Task<ActionResult<IEnumerable<VehicleDto>>> GetAll()
+        {
+            var vehicles = await _vehicleRepository.GetAllAsync();
+            return Ok(_mapper.Map<IEnumerable<VehicleDto>>(vehicles));
+        }
+
         [HttpGet("by-hub/{hubId}")]
         [Authorize(Roles = "Admin,FleetManager")]
         public async Task<ActionResult<IEnumerable<VehicleDto>>> GetByHub(Guid hubId)

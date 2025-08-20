@@ -30,6 +30,7 @@ builder.Services.AddIdentity<User, IdentityRole<Guid>>()
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddCors();
 builder.Services.AddScoped<DatabaseInitializer>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();

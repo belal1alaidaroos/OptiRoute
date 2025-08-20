@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   PageContainer,
   PageHeader,
@@ -23,40 +23,10 @@ import {
   CheckCircleIcon,
   AlertTriangleIcon
 } from '../../components/icons/SVGIcons';
+import apiClient from '../../lib/apiClient';
 
 const Countries = () => {
-  const [countries, setCountries] = useState([
-    { 
-      id: 1, 
-      name: 'Saudi Arabia', 
-      code: 'SA',
-      status: 'Active',
-      priority: 'High',
-      currency: 'SAR',
-      timezone: 'UTC+3',
-      description: 'Kingdom of Saudi Arabia'
-    },
-    { 
-      id: 2, 
-      name: 'United Arab Emirates', 
-      code: 'AE',
-      status: 'Active',
-      priority: 'High',
-      currency: 'AED',
-      timezone: 'UTC+4',
-      description: 'United Arab Emirates'
-    },
-    { 
-      id: 3, 
-      name: 'Egypt', 
-      code: 'EG',
-      status: 'Active',
-      priority: 'Medium',
-      currency: 'EGP',
-      timezone: 'UTC+2',
-      description: 'Arab Republic of Egypt'
-    }
-  ]);
+  const [countries, setCountries] = useState([]);
 
   const [statuses] = useState(['Active', 'Inactive', 'Pending']);
   const [priorities] = useState(['High', 'Medium', 'Low']);
@@ -83,10 +53,21 @@ const Countries = () => {
     description: ''
   });
 
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data } = await apiClient.get('/countries');
+        setCountries(data);
+      } catch (e) {
+        setToast({ message: 'Failed to load countries', type: 'error' });
+      }
+    })();
+  }, []);
+
   // Filter countries
   const filteredCountries = countries.filter(country =>
-    country.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    country.code.toLowerCase().includes(searchTerm.toLowerCase())
+    (country.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (country.code || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // Calculate statistics
@@ -130,48 +111,53 @@ const Countries = () => {
   };
 
   // Handle form submission
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    setTimeout(() => {
+    try {
       if (selectedCountry) {
-        // Update existing country
-        setCountries(countries.map(c => 
-          c.id === selectedCountry.id ? { ...c, ...formData } : c
-        ));
+        await apiClient.put(`/countries/${selectedCountry.id}`, {
+          name: formData.name,
+          status: formData.status,
+          currency: formData.currency,
+          timezone: formData.timezone,
+        });
       } else {
-        // Add new country
-        const newCountry = {
-          id: Math.max(...countries.map(c => c.id)) + 1,
-          ...formData
-        };
-        setCountries([...countries, newCountry]);
+        const { data } = await apiClient.post('/countries', {
+          name: formData.name,
+          alternativeName: formData.alternativeName,
+          code: formData.code,
+          currency: formData.currency,
+          timezone: formData.timezone,
+        });
+        setCountries([...countries, data]);
       }
-      
+      const refreshed = await apiClient.get('/countries');
+      setCountries(refreshed.data);
+      setToast({ message: selectedCountry ? 'Country updated successfully!' : 'Country added successfully!', type: 'success' });
+    } catch (err) {
+      setToast({ message: 'Operation failed', type: 'error' });
+    } finally {
       setIsLoading(false);
       setShowAddModal(false);
       setShowEditModal(false);
-      setToast({
-        message: selectedCountry ? 'Country updated successfully!' : 'Country added successfully!',
-        type: 'success'
-      });
-    }, 1000);
+    }
   };
 
   // Handle delete confirmation
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     setIsLoading(true);
-    
-    setTimeout(() => {
-      setCountries(countries.filter(c => c.id !== selectedCountry.id));
+    try {
+      await apiClient.delete(`/countries/${selectedCountry.id}`);
+      const refreshed = await apiClient.get('/countries');
+      setCountries(refreshed.data);
+      setToast({ message: 'Country deleted successfully!', type: 'success' });
+    } catch (err) {
+      setToast({ message: 'Delete failed', type: 'error' });
+    } finally {
       setIsLoading(false);
       setShowDeleteModal(false);
-      setToast({
-        message: 'Country deleted successfully!',
-        type: 'success'
-      });
-    }, 1000);
+    }
   };
 
   // Close toast
