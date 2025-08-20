@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import apiClient from '../../lib/apiClient';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { 
@@ -79,94 +80,74 @@ const Shipments = () => {
   const periods = ['AM', 'PM'];
   const statusOptions = ['pending', 'in-transit', 'delivered', 'cancelled', 'returned'];
 
-  const shipments = [
-    {
-      id: 1,
-      shipmentNumber: 'SH-2024-001',
-      customerName: 'Ahmed Trading Co.',
-      pickupAddress: 'Riyadh Industrial Area',
-      deliveryAddress: 'Jeddah Port',
-      pickupDate: '2024-01-15',
-      status: 'in-transit',
-      weight: '2.5 tons',
-      value: '15,000 SAR',
-      notes: 'Fragile items, handle with care',
-      type: 'Shipment',
-      period: 'AM',
-      startTime: '08:30',
-      endTime: '14:45',
-      duration: 375, // minutes
-      pickupLat: 24.7136,
-      pickupLong: 46.6753,
-      deliveryLat: 21.5433,
-      deliveryLong: 39.1728,
-      mainMobile: '0551234567',
-      secondaryMobile: '0551112222',
-      driver: { id: 1, name: 'Mohammed Ali', mobile: '0551234567' },
-      trip: 'TRP-2024-001',
-      hub: 'Riyadh Hub',
-      createdDate: '2024-01-10',
-      updatedDate: '2024-01-15'
-    },
-    // Add more sample data as needed...
-    {
-      id: 2,
-      shipmentNumber: 'SH-2024-002',
-      customerName: 'Al-Noor Electronics',
-      pickupAddress: 'Dammam Warehouse',
-      deliveryAddress: 'Riyadh Mall',
-      pickupDate: '2024-01-16',
-      status: 'delivered',
-      weight: '500 kg',
-      value: '8,500 SAR',
-      notes: 'Electronics equipment',
-      type: 'Shipment',
-      period: 'PM',
-      startTime: '13:00',
-      endTime: '18:30',
-      duration: 330,
-      pickupLat: 26.4207,
-      pickupLong: 50.0888,
-      deliveryLat: 24.7136,
-      deliveryLong: 46.6753,
-      mainMobile: '0557654321',
-      secondaryMobile: '0553334444',
-      driver: { id: 2, name: 'Ahmed Hassan', mobile: '0557654321' },
-      trip: 'TRP-2024-002',
-      hub: 'Dammam Hub',
-      createdDate: '2024-01-11',
-      updatedDate: '2024-01-16'
-    },
-    // Add 8 more sample shipments to demonstrate pagination
-      ...Array.from({ length: 8 }, (_, i) => ({
-      id: i + 3,
-	  shipmentNumber: `SH-2024-${String(i + 3).padStart(3, '0')}`,
-	  customerName: `Customer ${i + 1}`,
-	  pickupAddress: `Pickup Location ${i + 1}`,
-	  deliveryAddress: `Delivery Location ${i + 1}`,
-	  pickupDate: `2024-01-${String(17 + i).padStart(2, '0')}`,
-	  status: ['pending', 'in-transit', 'delivered'][i % 3],
-	  weight: `${500 + (i * 100)} kg`,
-	  value: `${5000 + (i * 1000)} SAR`,  // Fixed: removed comma
-	  notes: `Sample notes for shipment ${i + 3}`,
-	  type: shipmentTypes[i % 2],
-	  period: periods[i % 2],
-      startTime: `${8 + i}:${i % 2 === 0 ? '00' : '30'}`,
-      endTime: `${12 + i}:${i % 2 === 0 ? '45' : '15'}`,
-      duration: 240 + (i * 30),
-      pickupLat: 24.7136 + (i * 0.1),
-      pickupLong: 46.6753 + (i * 0.1),
-      deliveryLat: 21.5433 + (i * 0.1),
-      deliveryLong: 39.1728 + (i * 0.1),
-      mainMobile: `055${1000000 + (i * 111111)}`,
-      secondaryMobile: `055${2000000 + (i * 111111)}`,
-      driver: drivers[i % 2],
-      trip: `TRP-2024-${String(i + 3).padStart(3, '0')}`,
-      hub: hubs[i % hubs.length],
-      createdDate: `2024-01-${String(10 + i).padStart(2, '0')}`,
-      updatedDate: `2024-01-${String(15 + i).padStart(2, '0')}`
-    }))
-  ];
+  const [shipments, setShipments] = useState([]);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await apiClient.get('/shipments');
+        const data = (res.data || []).map(s => ({
+          id: s.id,
+          shipmentNumber: s.shipmentNumber || '',
+          customerName: s.customerName || '',
+          pickupAddress: s.pickupAddress,
+          deliveryAddress: s.deliveryAddress,
+          pickupDate: (s.pickupDate || '').slice(0,10),
+          status: typeof s.status === 'string' ? s.status.toLowerCase() : 'pending',
+          weight: `${s.weight || 0} kg`,
+          value: `${s.value || 0} SAR`,
+          notes: s.notes || '',
+          type: s.type === 1 ? 'Service' : 'Shipment',
+          period: s.period === 1 ? 'AM' : 'PM',
+          startTime: (s.startTime || '').toString(),
+          endTime: (s.endTime || '').toString(),
+          duration: s.duration || 0,
+          pickupLat: s.pickupLatitude || 0,
+          pickupLong: s.pickupLongitude || 0,
+          deliveryLat: s.deliveryLatitude || 0,
+          deliveryLong: s.deliveryLongitude || 0,
+          mainMobile: s.mainMobile || '',
+          secondaryMobile: s.secondaryMobile || '',
+          driver: { id: s.driverId, name: s.driverName || 'N/A', mobile: s.driverMobile || '' },
+          trip: s.tripId || '',
+          hub: s.hubId || '',
+          createdDate: (s.createdDate || '').slice(0,10),
+          updatedDate: (s.updatedDate || '').slice(0,10)
+        }));
+        setShipments(data);
+      } catch {}
+    };
+    load();
+  }, []);
+
+  const handleAddShipmentApi = async (fd) => {
+    const payload = {
+      customerId: fd.get('customerId'),
+      pickupAddress: fd.get('pickupAddress'),
+      deliveryAddress: fd.get('deliveryAddress'),
+      pickupDate: fd.get('pickupDate'),
+      status: fd.get('status') || 'Pending',
+      weight: Number((fd.get('weight') || '').toString().replace(/[^0-9.]/g, '')) || 0,
+      value: Number((fd.get('value') || '').toString().replace(/[^0-9.]/g, '')) || 0,
+      notes: fd.get('notes') || '',
+      type: fd.get('type') === 'Service' ? 1 : 0,
+      periodId: fd.get('periodId'),
+      startTime: fd.get('startTime'),
+      endTime: fd.get('endTime'),
+      mainMobile: fd.get('mainMobile'),
+      secondaryMobile: fd.get('secondaryMobile'),
+      pickupLongitude: Number(fd.get('pickupLong')),
+      pickupLatitude: Number(fd.get('pickupLat')),
+      deliveryLongitude: Number(fd.get('deliveryLong')),
+      deliveryLatitude: Number(fd.get('deliveryLat')),
+      driverId: fd.get('driver') || null,
+      tripId: null,
+      hubId: null
+    };
+    try {
+      await apiClient.post('/shipments', payload);
+    } catch {}
+  };
 
   // Filter shipments based on filters
   const filteredShipments = shipments.filter(shipment => {
@@ -265,9 +246,9 @@ const Shipments = () => {
     setShowViewModal(true);
   };
 
-  const handleAddShipment = (formData) => {
-    // Logic to add new shipment
-    setToast({ message: 'Shipment added successfully', type: 'success' });
+  const handleAddShipment = async (formData) => {
+    await handleAddShipmentApi(formData);
+    setToast({ message: 'Shipment added', type: 'success' });
     setShowAddModal(false);
   };
 

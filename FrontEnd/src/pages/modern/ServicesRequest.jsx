@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   PageContainer,
   PageHeader,
@@ -23,40 +23,16 @@ import {
   ThumbsDownIcon
 } from '@/components/icons/SVGIcons';
 
- 
+import apiClient from '@/lib/apiClient';
 
 const ServicesRequest = () => {
-  // Lookup data
-  const [vehicles] = useState(['Toyota Camry', 'Honda Civic', 'Ford F-150', 'Tesla Model 3']);
-  const [workshops] = useState(['Downtown Garage', 'Westside Auto', 'Premium Care']);
-  const [providers] = useState(['John Mechanic', 'Sarah Tech', 'Mike Specialist']);
-  const [cities] = useState(['New York', 'Los Angeles', 'Chicago', 'Houston']);
+  // Lookup data loaded from backend
+  const [vehicles, setVehicles] = useState([]);
+  const [workshops, setWorkshops] = useState([]);
+  const [cities, setCities] = useState([]);
 
   // State management
-  const [requests, setRequests] = useState([
-    { 
-      id: 1, 
-      serviceType: 'Oil Change', 
-      vehicle: 'Toyota Camry', 
-      workshop: 'Downtown Garage',
-      provider: 'John Mechanic',
-      date: '2023-06-15', 
-      status: 'Pending', 
-      cost: 120,
-      customer: 'John Doe',
-      contact: '555-1234',
-      address: '123 Main St',
-      city: 'New York',
-      mileage: 45000,
-      priority: 'Medium',
-      notes: 'Full synthetic oil',
-      attachments: [
-        { id: 1, name: 'engine.jpg', type: 'image/jpeg', size: '2.4MB' },
-        { id: 2, name: 'invoice.pdf', type: 'application/pdf', size: '1.1MB' }
-      ]
-    },
-    // ...other requests
-  ]);
+  const [requests, setRequests] = useState([]);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -124,52 +100,110 @@ const ServicesRequest = () => {
     setAttachments(attachments.filter(att => att.id !== id));
   };
 
-  // Handle form submission
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    
-    const requestData = {
-      ...formData,
-      attachments: [...formData.attachments, ...attachments],
-      date: formData.date.toISOString().split('T')[0],
-      cost: Number(formData.cost) || 0
+  // Load lookups and requests
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [vehiclesRes, workshopsRes, citiesRes, requestsRes] = await Promise.all([
+          apiClient.get('/vehicles'),
+          apiClient.get('/workshops'),
+          apiClient.get('/cities'),
+          apiClient.get('/services-requests')
+        ]);
+        setVehicles((vehiclesRes.data || []).map(v => ({ id: v.id, label: v.vehiclePlateNumber || v.plateNumber || v.name })));
+        setWorkshops((workshopsRes.data || []).map(w => ({ id: w.id, label: w.name })));
+        setCities((citiesRes.data || []).map(c => ({ id: c.id, label: c.name })));
+        setRequests((requestsRes.data || []).map(r => ({
+          id: r.id,
+          serviceType: r.serviceType,
+          vehicleId: r.vehicleId,
+          vehicle: r.vehiclePlate,
+          workshopId: r.workshopId,
+          workshop: r.workshopName,
+          date: (r.date || '').split('T')[0],
+          status: r.status,
+          priority: r.priority,
+          cost: r.cost || 0,
+          customer: r.customer || '',
+          contact: r.contact || '',
+          address: r.address || '',
+          city: r.city || '',
+          mileage: r.mileage || '',
+          notes: r.notes || '',
+          attachments: []
+        })));
+      } catch (err) {
+        console.error('Failed to load data', err);
+      }
     };
-    
-    if (isEditing) {
-      // Update existing request
-      setRequests(requests.map(r => 
-        r.id === formData.id ? requestData : r
-      ));
-      setToast({ message: 'Request updated', type: 'success' });
-    } else {
-      // Create new request
-      const newId = requests.length > 0 ? Math.max(...requests.map(r => r.id)) + 1 : 1;
-      setRequests([
-        ...requests,
-        {
-          ...requestData,
-          id: newId
-        }
-      ]);
-      setToast({ message: 'Request created', type: 'success' });
+    load();
+  }, []);
+
+  // Handle form submission
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const payload = {
+        serviceType: formData.serviceType,
+        vehicleId: formData.vehicleId,
+        workshopId: formData.workshopId,
+        date: new Date(formData.date).toISOString(),
+        priority: formData.priority
+      };
+
+      if (isEditing && formData.id) {
+        await apiClient.put(`/services-requests/${formData.id}`, payload);
+        setToast({ message: 'Request updated', type: 'success' });
+      } else {
+        await apiClient.post('/services-requests', payload);
+        setToast({ message: 'Request created', type: 'success' });
+      }
+
+      const refreshed = await apiClient.get('/services-requests');
+      setRequests((refreshed.data || []).map(r => ({
+        id: r.id,
+        serviceType: r.serviceType,
+        vehicleId: r.vehicleId,
+        vehicle: r.vehiclePlate,
+        workshopId: r.workshopId,
+        workshop: r.workshopName,
+        date: (r.date || '').split('T')[0],
+        status: r.status,
+        priority: r.priority,
+        cost: r.cost || 0,
+        attachments: []
+      })));
+
+      resetForm();
+      setIsModalOpen(false);
+    } catch (err) {
+      console.error('Failed to save', err);
+      setToast({ message: 'Failed to save request', type: 'danger' });
     }
-    
-    resetForm();
-    setIsModalOpen(false);
   };
 
   // Handle delete
-  const handleDelete = (id) => {
-    setRequests(requests.filter(r => r.id !== id));
-    setToast({ message: 'Request deleted', type: 'success' });
+  const handleDelete = async (id) => {
+    try {
+      await apiClient.delete(`/services-requests/${id}`);
+      setRequests(requests.filter(r => r.id !== id));
+      setToast({ message: 'Request deleted', type: 'success' });
+    } catch (err) {
+      console.error('Failed to delete', err);
+      setToast({ message: 'Failed to delete', type: 'danger' });
+    }
   };
 
   // Handle status change
-  const handleStatusChange = (id, newStatus) => {
-    setRequests(requests.map(r => 
-      r.id === id ? { ...r, status: newStatus } : r
-    ));
-    setToast({ message: `Status updated to ${newStatus}`, type: 'success' });
+  const handleStatusChange = async (id, newStatus) => {
+    try {
+      await apiClient.put(`/services-requests/${id}`, { status: newStatus });
+      setRequests(requests.map(r => r.id === id ? { ...r, status: newStatus } : r));
+      setToast({ message: `Status updated to ${newStatus}`, type: 'success' });
+    } catch (err) {
+      console.error('Failed to update status', err);
+      setToast({ message: 'Failed to update status', type: 'danger' });
+    }
   };
 
   // Prepare edit form

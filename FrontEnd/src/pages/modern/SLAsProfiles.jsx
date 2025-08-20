@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import apiClient from '../../lib/apiClient';
 import { 
   PlusIcon, 
   SearchIcon, 
@@ -20,11 +21,7 @@ import {
 } from '../../components/shared/UnifiedDesignComponents';
 
 const SLAsProfiles = () => {
-  const [slas, setSlas] = useState([
-    { id: 1, name: 'Standard', response: 24, resolution: 72, priority: 'Medium', status: 'Active' },
-    { id: 2, name: 'Premium', response: 4, resolution: 24, priority: 'High', status: 'Active' },
-    { id: 3, name: 'Emergency', response: 1, resolution: 8, priority: 'Critical', status: 'Inactive' }
-  ]);
+  const [slas, setSlas] = useState([]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentSla, setCurrentSla] = useState(null);
@@ -51,6 +48,24 @@ const SLAsProfiles = () => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await apiClient.get('/sla-profiles');
+        const list = (res.data || []).map(p => ({
+          id: p.id,
+          name: p.slaName,
+          response: p.responseTime,
+          resolution: p.resolutionTime,
+          priority: p.priority,
+          status: p.status || 'Active'
+        }));
+        setSlas(list);
+      } catch {}
+    };
+    load();
+  }, []);
 
   const handleAdd = () => {
     setCurrentSla(null);
@@ -82,24 +97,41 @@ const SLAsProfiles = () => {
 
   const handleDelete = (sla) => {
     setSlas(slas.filter(s => s.id !== sla.id));
-    setToast({ message: `${sla.name} SLA deleted`, type: 'success' });
+    setToast({ message: `${sla.name} SLA removed (local only)`, type: 'info' });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (currentSla) {
-      const updatedSlas = slas.map(s => 
-        s.id === currentSla.id ? { ...s, ...formData } : s
-      );
-      setSlas(updatedSlas);
-      setToast({ message: `${formData.name} SLA updated`, type: 'success' });
-    } else {
-      const newSla = {
-        id: Math.max(...slas.map(s => s.id)) + 1,
-        ...formData
-      };
-      setSlas([...slas, newSla]);
-      setToast({ message: `${formData.name} SLA added`, type: 'success' });
+    try {
+      if (currentSla) {
+        // Backend exposes only toggle-active; emulate local edit
+        const updatedSlas = slas.map(s => 
+          s.id === currentSla.id ? { ...s, ...formData } : s
+        );
+        setSlas(updatedSlas);
+        setToast({ message: `${formData.name} SLA updated (local)`, type: 'info' });
+      } else {
+        const payload = {
+          slaName: formData.name,
+          responseTime: Number(formData.response),
+          resolutionTime: Number(formData.resolution),
+          priority: formData.priority
+        };
+        const res = await apiClient.post('/sla-profiles', payload);
+        const created = res.data;
+        const newSla = {
+          id: created.id,
+          name: created.slaName,
+          response: created.responseTime,
+          resolution: created.resolutionTime,
+          priority: created.priority,
+          status: created.status || 'Active'
+        };
+        setSlas([...slas, newSla]);
+        setToast({ message: `${formData.name} SLA added`, type: 'success' });
+      }
+    } catch {
+      setToast({ message: 'Failed to save SLA', type: 'error' });
     }
     setIsModalOpen(false);
   };

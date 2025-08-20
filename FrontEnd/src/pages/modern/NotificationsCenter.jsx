@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   BellIcon, 
   CheckCircleIcon,
@@ -11,98 +11,47 @@ import {
   MessageSquareIcon,
   SearchIcon 
 } from '../../components/icons/SVGIcons';
+import apiClient from '../../lib/apiClient';
 
 const NotificationsCenterFixed = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      type: 'Alert',
-      title: 'Vehicle ABC-123 maintenance overdue',
-      message: 'Vehicle ABC-123 has exceeded the maintenance schedule by 500km. Please schedule maintenance immediately.',
-      timestamp: '2024-01-15 10:45:00',
-      status: 'Unread',
-      priority: 'High',
-      source: 'Maintenance System',
-      recipient: 'Fleet Manager',
-      actions: ['Schedule Maintenance', 'Mark as Read']
-    },
-    {
-      id: 2,
-      type: 'System',
-      title: 'Daily backup completed successfully',
-      message: 'System backup for January 15, 2024 has been completed successfully. All data has been backed up to secure storage.',
-      timestamp: '2024-01-15 10:30:00',
-      status: 'Read',
-      priority: 'Low',
-      source: 'Backup Service',
-      recipient: 'System Administrator',
-      actions: ['View Details', 'Download Report']
-    },
-    {
-      id: 3,
-      type: 'Delivery',
-      title: 'Delivery completed for order #ORD-456',
-      message: 'Driver Omar Hassan has successfully completed delivery for order #ORD-456 to customer Al-Rashid Trading.',
-      timestamp: '2024-01-15 10:15:00',
-      status: 'Read',
-      priority: 'Medium',
-      source: 'Delivery Service',
-      recipient: 'Dispatcher',
-      actions: ['View Order', 'Send Feedback']
-    },
-    {
-      id: 4,
-      type: 'User',
-      title: 'New user registration pending approval',
-      message: 'A new user "Fatima Al-Zahra" has registered and is pending approval for Driver role.',
-      timestamp: '2024-01-15 09:45:00',
-      status: 'Unread',
-      priority: 'Medium',
-      source: 'User Management',
-      recipient: 'HR Manager',
-      actions: ['Approve User', 'View Profile', 'Reject']
-    },
-    {
-      id: 5,
-      type: 'Route',
-      title: 'Route optimization completed',
-      message: 'Route optimization for 15 deliveries has been completed. Estimated time savings: 45 minutes, fuel savings: 12%.',
-      timestamp: '2024-01-15 09:30:00',
-      status: 'Read',
-      priority: 'Low',
-      source: 'Route Optimizer',
-      recipient: 'Operations Manager',
-      actions: ['View Route', 'Apply Changes']
-    },
-    {
-      id: 6,
-      type: 'Alert',
-      title: 'Driver exceeded speed limit',
-      message: 'Driver Ahmed Khalil exceeded speed limit (85 km/h in 60 km/h zone) on Route 101 at 09:15 AM.',
-      timestamp: '2024-01-15 09:15:00',
-      status: 'Unread',
-      priority: 'High',
-      source: 'Tracking System',
-      recipient: 'Safety Manager',
-      actions: ['Contact Driver', 'View Location', 'Generate Report']
-    }
-  ]);
+  const [notifications, setNotifications] = useState([]);
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const { data } = await apiClient.get('/notifications-center');
+        // If backend returns center object, adjust mapping accordingly
+        setNotifications(Array.isArray(data) ? data : (data?.notifications || []));
+      } catch (err) {
+        console.error('Failed to load notifications center', err);
+      }
+    };
+    load();
+  }, []);
 
   const types = ['all', 'Alert', 'System', 'Delivery', 'User', 'Route'];
   const statuses = ['all', 'Unread', 'Read'];
 
   // CRUD Operations
-  const handleMarkAsRead = (id) => {
-    setNotifications(notifications.map(n => 
-      n.id === id ? { ...n, status: 'Read' } : n
-    ));
+  const handleMarkAsRead = async (id) => {
+    try {
+      await apiClient.post('/notifications-center/mark-as-read', { notificationIds: [id] });
+      setNotifications(notifications.map(n => n.id === id ? { ...n, status: 'Read' } : n));
+    } catch (err) {
+      console.error('Failed to mark as read', err);
+    }
   };
 
-  const handleMarkAllRead = () => {
-    setNotifications(notifications.map(n => ({ ...n, status: 'Read' })));
+  const handleMarkAllRead = async () => {
+    try {
+      const ids = notifications.filter(n => n.status !== 'Read').map(n => n.id);
+      if (ids.length) await apiClient.post('/notifications-center/mark-as-read', { notificationIds: ids });
+      setNotifications(notifications.map(n => ({ ...n, status: 'Read' })));
+    } catch (err) {
+      console.error('Failed to mark all read', err);
+    }
   };
 
   const handleDelete = (id) => {

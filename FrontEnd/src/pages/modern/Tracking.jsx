@@ -11,6 +11,7 @@ import {
   XIcon,
   FilterIcon
 } from '../../components/icons/SVGIcons';
+import apiClient from '../../lib/apiClient';
 
 const TrackingPage = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -26,82 +27,39 @@ const TrackingPage = () => {
   const [liveUpdate, setLiveUpdate] = useState(false);
   const [expandedTrip, setExpandedTrip] = useState(null);
 
-  const mockTrips = [
-    {
-      id: 'A',
-      status: 'in-progress',
-      progress: 65,
-      driver: 'Mohammed Ali',
-      hub: 'Hub A',
-      period: 'AM',
-      startTime: '08:00',
-      endTime: '14:00',
-      isLive: true,
-      deliveredPackages: 12,
-      totalPackages: 20,
-      locations: [
-        { lat: 24.7136, lng: 46.6753, name: 'Warehouse', timestamp: '08:00' },
-        { lat: 24.7236, lng: 46.6853, name: 'Checkpoint 1', timestamp: '09:30' },
-        { lat: 24.7336, lng: 46.6953, name: 'Current', timestamp: '10:45', speed: '45 km/h' }
-      ]
-    },
-    {
-      id: 'M',
-      status: 'completed',
-      progress: 100,
-      driver: 'Ahmed Hassan',
-      hub: 'Hub B',
-      period: 'PM',
-      startTime: '14:00',
-      endTime: '20:00',
-      isLive: false,
-      deliveredPackages: 15,
-      totalPackages: 15,
-      locations: [
-        { lat: 24.7136, lng: 46.6753, name: 'Warehouse', timestamp: '14:00' },
-        { lat: 24.7236, lng: 46.6853, name: 'Checkpoint 1', timestamp: '15:30' },
-        { lat: 24.7336, lng: 46.6953, name: 'Destination', timestamp: '19:45' }
-      ]
-    },
-    {
-      id: 'X',
-      status: 'in-progress',
-      progress: 30,
-      driver: 'Sami Omar',
-      hub: 'Hub C',
-      period: 'AM',
-      startTime: '08:00',
-      endTime: '14:00',
-      isLive: true,
-      deliveredPackages: 5,
-      totalPackages: 18,
-      locations: [
-        { lat: 24.7136, lng: 46.6753, name: 'Warehouse', timestamp: '08:00' },
-        { lat: 24.7186, lng: 46.6803, name: 'Current', timestamp: '09:15', speed: '35 km/h' }
-      ]
-    },
-    {
-      id: 'G',
-      status: 'pending',
-      progress: 0,
-      driver: 'Ali Mohammed',
-      hub: 'Hub A',
-      period: 'PM',
-      startTime: '14:00',
-      endTime: '20:00',
-      isLive: false,
-      deliveredPackages: 0,
-      totalPackages: 10,
-      locations: []
-    }
-  ];
+  const [allTrips, setAllTrips] = useState([]);
+  const [filteredTrips, setFilteredTrips] = useState([]);
 
-  // إضافة حالة للرحلات المفلترة
-  const [filteredTrips, setFilteredTrips] = useState(mockTrips);
+  useEffect(() => {
+    const loadTrips = async () => {
+      try {
+        const { data } = await apiClient.get('/trips');
+        const mapped = (data || []).map(t => ({
+          id: t.id,
+          status: (t.status || '').toLowerCase().replace(' ', '-'),
+          progress: t.status === 'Completed' ? 100 : t.status === 'In Progress' ? 50 : 0,
+          driver: t.driverName,
+          hub: t.startHubName,
+          period: 'AM',
+          startTime: t.startDate ? new Date(t.startDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+          endTime: t.endDate ? new Date(t.endDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+          isLive: t.status === 'In Progress',
+          deliveredPackages: 0,
+          totalPackages: 0,
+          locations: []
+        }));
+        setAllTrips(mapped);
+        setFilteredTrips(mapped);
+      } catch (err) {
+        console.error('Failed to load trips', err);
+      }
+    };
+    loadTrips();
+  }, []);
 
   // دالة تطبيق الفلاتر
   const handleFilterApply = () => {
-    let trips = [...mockTrips];
+    let trips = [...allTrips];
 
     if (filters.hub !== 'All hubs') {
       trips = trips.filter(trip => trip.hub === filters.hub);
@@ -123,7 +81,7 @@ const TrackingPage = () => {
   // تطبيق الفلاتر عند تحميل الصفحة
   useEffect(() => {
     handleFilterApply();
-  }, []);
+  }, [allTrips]);
 
   const handleMapToggle = (tripId) => {
     setTripsOnMap(prev => 

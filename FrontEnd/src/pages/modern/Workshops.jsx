@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   BuildingIcon, 
   PlusIcon, 
@@ -13,15 +13,9 @@ import {
   GlobeIcon,
   FuelIcon
 } from '../../components/icons/SVGIcons';
+import apiClient from '../../lib/apiClient';
 
-// Mock city data for lookup
-const cities = [
-  { id: 1, name: 'Riyadh' },
-  { id: 2, name: 'Jeddah' },
-  { id: 3, name: 'Dammam' },
-  { id: 4, name: 'Mecca' },
-  { id: 5, name: 'Medina' },
-];
+// Cities and workshops will be loaded from backend
 
 // Workshop types
 const WORKSHOP_TYPES = {
@@ -35,56 +29,41 @@ const Workshops = () => {
   const [viewingWorkshop, setViewingWorkshop] = useState(null);
   const [editingWorkshop, setEditingWorkshop] = useState(null);
   
-  const [workshops, setWorkshops] = useState([
-    {
-      id: 1,
-      name: 'Al-Riyadh Auto Service',
-      location: 'Industrial Area, Riyadh',
-      cityId: 1,
-      phone: '+966 11 234 5678',
-      email: 'info@riyadhauto.com',
-      specialties: ['Engine Repair', 'Transmission', 'Electrical'],
-      rating: 4.8,
-      status: 'Active',
-      capacity: '15 vehicles',
-      currentJobs: 8,
-      latitude: 24.7136,
-      longitude: 46.6753,
-      type: WORKSHOP_TYPES.MAINTENANCE
-    },
-    {
-      id: 2,
-      name: 'Modern Fleet Maintenance',
-      location: 'Warehouse District, Jeddah',
-      cityId: 2,
-      phone: '+966 12 345 6789',
-      email: 'service@modernfleet.com',
-      specialties: ['Brake Systems', 'AC Repair', 'Body Work'],
-      rating: 4.6,
-      status: 'Active',
-      capacity: '20 vehicles',
-      currentJobs: 12,
-      latitude: 21.5433,
-      longitude: 39.1728,
-      type: WORKSHOP_TYPES.MAINTENANCE
-    },
-    {
-      id: 3,
-      name: 'Saudi Fuel Center',
-      location: 'Highway 40, Dammam',
-      cityId: 3,
-      phone: '+966 13 456 7890',
-      email: 'contact@saudifuel.com',
-      specialties: ['Diesel', 'Gasoline', 'LPG'],
-      rating: 4.2,
-      status: 'Active',
-      capacity: '8 lanes',
-      currentJobs: 5,
-      latitude: 26.4207,
-      longitude: 50.0888,
-      type: WORKSHOP_TYPES.FUEL_STATION
-    }
-  ]);
+  const [workshops, setWorkshops] = useState([]);
+  const [cities, setCities] = useState([]);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [citiesRes, workshopsRes] = await Promise.all([
+          apiClient.get('/cities'),
+          apiClient.get('/workshops')
+        ]);
+        setCities(citiesRes.data || []);
+        // Map backend WorkshopDto to UI shape
+        const mapped = (workshopsRes.data || []).map(w => ({
+          id: w.id,
+          name: w.name,
+          location: w.location || '',
+          cityId: w.cityId,
+          phone: w.phone,
+          email: w.email || '',
+          specialties: Array.isArray(w.specialties) ? w.specialties : (w.specialties ? String(w.specialties).split(',').map(s => s.trim()) : []),
+          rating: Number(w.rating || 0),
+          status: w.status || 'Active',
+          capacity: w.capacity || '',
+          currentJobs: w.currentJobs || 0,
+          latitude: Number(w.latitude || 0),
+          longitude: Number(w.longitude || 0),
+          type: w.type || WORKSHOP_TYPES.MAINTENANCE
+        }));
+        setWorkshops(mapped);
+      } catch (err) {
+        console.error('Failed to load workshops/cities', err);
+      }
+    };
+    loadData();
+  }, []);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -109,7 +88,7 @@ const Workshops = () => {
 
   // Get city name by ID
   const getCityName = (cityId) => {
-    const city = cities.find(c => c.id === cityId);
+    const city = cities.find(c => c.id === cityId || c.id === String(cityId));
     return city ? city.name : 'Unknown City';
   };
 
@@ -132,41 +111,65 @@ const Workshops = () => {
   };
 
   // Handle form submission
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (editingWorkshop) {
-      // Update existing workshop
-      setWorkshops(workshops.map(workshop => 
-        workshop.id === editingWorkshop.id ? { ...formData, id: editingWorkshop.id } : workshop
-      ));
-    } else {
-      // Add new workshop
-      const newWorkshop = {
-        ...formData,
-        id: workshops.length > 0 ? Math.max(...workshops.map(w => w.id)) + 1 : 1
+    try {
+      const payload = {
+        name: formData.name,
+        cityId: formData.cityId,
+        phone: formData.phone,
+        specialties: Array.isArray(formData.specialties) ? formData.specialties.join(', ') : (formData.specialties || ''),
+        type: formData.type,
+        latitude: Number(formData.latitude || 0),
+        longitude: Number(formData.longitude || 0)
       };
-      setWorkshops([...workshops, newWorkshop]);
+
+      if (editingWorkshop) {
+        await apiClient.put(`/workshops/${editingWorkshop.id}`, payload);
+      } else {
+        await apiClient.post('/workshops', payload);
+      }
+
+      const refreshed = await apiClient.get('/workshops');
+      const mapped = (refreshed.data || []).map(w => ({
+        id: w.id,
+        name: w.name,
+        location: w.location || '',
+        cityId: w.cityId,
+        phone: w.phone,
+        email: w.email || '',
+        specialties: Array.isArray(w.specialties) ? w.specialties : (w.specialties ? String(w.specialties).split(',').map(s => s.trim()) : []),
+        rating: Number(w.rating || 0),
+        status: w.status || 'Active',
+        capacity: w.capacity || '',
+        currentJobs: w.currentJobs || 0,
+        latitude: Number(w.latitude || 0),
+        longitude: Number(w.longitude || 0),
+        type: w.type || WORKSHOP_TYPES.MAINTENANCE
+      }));
+      setWorkshops(mapped);
+
+      // Reset form and close modal
+      setFormData({
+        name: '',
+        location: '',
+        cityId: '',
+        phone: '',
+        email: '',
+        specialties: [],
+        rating: 0,
+        status: 'Active',
+        capacity: '',
+        currentJobs: 0,
+        latitude: '',
+        longitude: '',
+        type: WORKSHOP_TYPES.MAINTENANCE
+      });
+      setEditingWorkshop(null);
+      setShowAddModal(false);
+    } catch (err) {
+      console.error('Failed to save workshop', err);
     }
-    
-    // Reset form and close modal
-    setFormData({
-      name: '',
-      location: '',
-      cityId: '',
-      phone: '',
-      email: '',
-      specialties: [],
-      rating: 0,
-      status: 'Active',
-      capacity: '',
-      currentJobs: 0,
-      latitude: '',
-      longitude: '',
-      type: WORKSHOP_TYPES.MAINTENANCE
-    });
-    setEditingWorkshop(null);
-    setShowAddModal(false);
   };
 
   // Set workshop for editing
@@ -177,9 +180,13 @@ const Workshops = () => {
   };
 
   // Delete workshop
-  const handleDelete = (workshopId) => {
-    if (window.confirm('Are you sure you want to delete this workshop?')) {
+  const handleDelete = async (workshopId) => {
+    if (!window.confirm('Are you sure you want to delete this workshop?')) return;
+    try {
+      await apiClient.delete(`/workshops/${workshopId}`);
       setWorkshops(workshops.filter(workshop => workshop.id !== workshopId));
+    } catch (err) {
+      console.error('Failed to delete workshop', err);
     }
   };
 

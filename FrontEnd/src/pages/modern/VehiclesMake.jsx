@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   PlusIcon, 
   SearchIcon, 
@@ -21,6 +21,7 @@ import {
   FormButtons,
   Toast
 } from '../../components/shared/UnifiedDesignComponents';
+import apiClient from '../../lib/apiClient';
 
 // Temporary StatusBadge implementation
 const StatusBadge = ({ status, variant = 'default' }) => {
@@ -40,12 +41,19 @@ const StatusBadge = ({ status, variant = 'default' }) => {
 };
 
 const VehiclesMake = () => {
-  const [makes, setMakes] = useState([
-    { id: 1, name: 'Mercedes', country: 'Germany', popular: true },
-    { id: 2, name: 'Volvo', country: 'Sweden', popular: true },
-    { id: 3, name: 'MAN', country: 'Germany', popular: false },
-    { id: 4, name: 'Scania', country: 'Sweden', popular: true }
-  ]);
+  const [makes, setMakes] = useState([]);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const { data } = await apiClient.get('/vehicles/makes');
+        setMakes(data || []);
+      } catch (err) {
+        console.error('Failed to load vehicle makes', err);
+      }
+    };
+    load();
+  }, []);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -57,33 +65,46 @@ const VehiclesMake = () => {
     make.country.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleAddMake = (formData) => {
-    const newMake = {
-      id: makes.length + 1,
-      ...formData,
-      popular: formData.popular === 'true'
-    };
-    setMakes([...makes, newMake]);
-    setToast({ message: 'Make added successfully', type: 'success' });
-    setShowAddModal(false);
-  };
-
-  const handleEditMake = (formData) => {
-    const updatedMakes = makes.map(make => 
-      make.id === currentMake.id ? { 
-        ...make, 
-        ...formData,
+  const handleAddMake = async (formData) => {
+    try {
+      await apiClient.post('/vehicles/makes', {
+        name: formData.name,
+        country: formData.country,
         popular: formData.popular === 'true'
-      } : make
-    );
-    setMakes(updatedMakes);
-    setToast({ message: 'Make updated successfully', type: 'success' });
-    setShowAddModal(false);
+      });
+      const { data } = await apiClient.get('/vehicles/makes');
+      setMakes(data || []);
+      setToast({ message: 'Make added successfully', type: 'success' });
+      setShowAddModal(false);
+    } catch (err) {
+      console.error('Failed to add make', err);
+    }
   };
 
-  const handleDeleteMake = (id) => {
-    setMakes(makes.filter(make => make.id !== id));
-    setToast({ message: 'Make deleted successfully', type: 'success' });
+  const handleEditMake = async (formData) => {
+    try {
+      await apiClient.put(`/vehicles/makes/${currentMake.id}`, {
+        name: formData.name,
+        country: formData.country,
+        popular: formData.popular === 'true'
+      });
+      const { data } = await apiClient.get('/vehicles/makes');
+      setMakes(data || []);
+      setToast({ message: 'Make updated successfully', type: 'success' });
+      setShowAddModal(false);
+    } catch (err) {
+      console.error('Failed to update make', err);
+    }
+  };
+
+  const handleDeleteMake = async (id) => {
+    try {
+      await apiClient.delete(`/vehicles/makes/${id}`);
+      setMakes(makes.filter(make => make.id !== id));
+      setToast({ message: 'Make deleted successfully', type: 'success' });
+    } catch (err) {
+      console.error('Failed to delete make', err);
+    }
   };
 
   return (

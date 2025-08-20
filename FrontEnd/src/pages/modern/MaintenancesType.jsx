@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   PageContainer,
   PageHeader,
@@ -15,6 +15,7 @@ import {
   StatusBadge,
   Avatar
 } from '../../components/shared/UnifiedDesignComponents';
+import apiClient from '../../lib/apiClient';
 import { 
   WrenchIcon, 
   PlusIcon, 
@@ -53,45 +54,19 @@ const MaintenancesType = () => {
     description: ''
   });
 
-  // Sample data
-  const maintenances = [
-    {
-      id: 1,
-      name: 'Oil Change',
-      duration: 30,
-      category: 'Routine',
-      status: 'Active',
-      frequency: 'Every 5,000 km',
-      costEstimate: '$120',
-      description: 'Engine oil replacement and filter change',
-      lastPerformed: '2023-06-15',
-      nextDue: '2023-08-15'
-    },
-    {
-      id: 2,
-      name: 'Tire Rotation',
-      duration: 45,
-      category: 'Routine',
-      status: 'Active',
-      frequency: 'Every 10,000 km',
-      costEstimate: '$85',
-      description: 'Rotating vehicle tires to ensure even wear',
-      lastPerformed: '2023-05-20',
-      nextDue: '2023-07-20'
-    },
-    {
-      id: 3,
-      name: 'Brake Inspection',
-      duration: 60,
-      category: 'Safety',
-      status: 'Inactive',
-      frequency: 'Every 15,000 km',
-      costEstimate: '$200',
-      description: 'Comprehensive brake system inspection',
-      lastPerformed: '2023-04-10',
-      nextDue: '2023-07-10'
-    }
-  ];
+  const [maintenances, setMaintenances] = useState([]);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const { data } = await apiClient.get('/maintenance-types');
+        setMaintenances(data || []);
+      } catch (err) {
+        console.error('Failed to load maintenance types', err);
+      }
+    };
+    load();
+  }, []);
 
   // Filter maintenance types based on search term
   const filteredMaintenances = maintenances.filter(maintenance =>
@@ -137,33 +112,55 @@ const MaintenancesType = () => {
   };
 
   // Handle form submission (Add & Edit)
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      setIsLoading(true);
+      if (showEditModal && selectedMaintenance) {
+        await apiClient.put(`/maintenance-types/${selectedMaintenance.id}`, {
+          name: formData.name,
+          description: formData.description,
+          code: formData.code,
+          status: formData.status
+        });
+      } else {
+        await apiClient.post('/maintenance-types', {
+          name: formData.name,
+          description: formData.description,
+          code: formData.code
+        });
+      }
+      const { data } = await apiClient.get('/maintenance-types');
+      setMaintenances(data || []);
       setShowAddModal(false);
       setShowEditModal(false);
       setToast({
         message: showEditModal ? 'Maintenance type updated successfully!' : 'Maintenance type added successfully!',
         type: 'success'
       });
-    }, 1500);
+    } catch (err) {
+      console.error('Failed to save maintenance type', err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Handle delete confirmation
-  const handleDeleteConfirm = () => {
-    setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
+  const handleDeleteConfirm = async () => {
+    try {
+      setIsLoading(true);
+      await apiClient.delete(`/maintenance-types/${selectedMaintenance.id}`);
+      setMaintenances(maintenances.filter(m => m.id !== selectedMaintenance.id));
       setShowDeleteModal(false);
       setToast({
         message: 'Maintenance type deleted successfully!',
         type: 'success'
       });
-    }, 1000);
+    } catch (err) {
+      console.error('Failed to delete maintenance type', err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Close toast

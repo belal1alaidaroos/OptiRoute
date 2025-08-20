@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   DocumentIcon, 
   PlusIcon, 
@@ -9,58 +9,38 @@ import {
   FolderIcon,
   FileIcon
 } from '../../components/icons/SVGIcons';
+import apiClient from '../../lib/apiClient';
 
 const AttachmentsFixed = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState('all');
   const [viewMode, setViewMode] = useState('grid');
+  const [attachments, setAttachments] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  const attachments = [
-    {
-      id: 1,
-      name: 'Vehicle_Registration_ABC123.pdf',
-      type: 'PDF',
-      size: '2.4 MB',
-      uploadedBy: 'Ahmed Al-Rashid',
-      uploadDate: '2024-01-15 10:30',
-      category: 'Vehicle Documents',
-      tags: ['Registration', 'Legal'],
-      thumbnail: '📄'
-    },
-    {
-      id: 2,
-      name: 'Driver_License_Omar.jpg',
-      type: 'Image',
-      size: '1.8 MB',
-      uploadedBy: 'Sarah Mohammed',
-      uploadDate: '2024-01-14 14:20',
-      category: 'Driver Documents',
-      tags: ['License', 'ID'],
-      thumbnail: '🖼️'
-    },
-    {
-      id: 3,
-      name: 'Insurance_Policy_2024.pdf',
-      type: 'PDF',
-      size: '3.2 MB',
-      uploadedBy: 'Admin',
-      uploadDate: '2024-01-10 09:15',
-      category: 'Insurance',
-      tags: ['Insurance', 'Policy'],
-      thumbnail: '📄'
-    },
-    {
-      id: 4,
-      name: 'Route_Analysis_Report.xlsx',
-      type: 'Spreadsheet',
-      size: '856 KB',
-      uploadedBy: 'Fatima Ali',
-      uploadDate: '2024-01-12 16:45',
-      category: 'Reports',
-      tags: ['Analysis', 'Routes'],
-      thumbnail: '📊'
-    }
-  ];
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        const res = await apiClient.get('/attachments');
+        const list = (res.data || []).map(a => ({
+          id: a.id,
+          name: a.name || a.fileName || 'Attachment',
+          type: a.type || 'Document',
+          size: a.size || '',
+          uploadedBy: a.uploadedByName || '',
+          uploadDate: a.uploadDate || '',
+          category: a.category || '',
+          tags: a.tags || [],
+          thumbnail: '📄',
+          fileUrl: a.fileUrl
+        }));
+        setAttachments(list);
+      } catch {}
+      setLoading(false);
+    };
+    load();
+  }, []);
 
   const types = ['all', 'PDF', 'Image', 'Spreadsheet', 'Document'];
   const categories = ['all', 'Vehicle Documents', 'Driver Documents', 'Insurance', 'Reports'];
@@ -311,7 +291,7 @@ const AttachmentsFixed = () => {
               borderRadius: '16px',
               padding: '24px',
               boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-              border: '1px solid #E5E7EB',
+              border: '1px solid '#E5E7EB',
               transition: 'transform 0.2s, box-shadow 0.2s'
             }}
             onMouseOver={(e) => {
@@ -416,7 +396,9 @@ const AttachmentsFixed = () => {
                 }}
                 onMouseOver={(e) => e.target.style.backgroundColor = '#F9FAFB'}
                 onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}>
-                  <DownloadIcon size={16} />
+                  <a href={attachment.fileUrl} target="_blank" rel="noreferrer" style={{ color: 'inherit' }}>
+                    <DownloadIcon size={16} />
+                  </a>
                 </button>
                 <button style={{
                   background: 'none',
@@ -428,7 +410,8 @@ const AttachmentsFixed = () => {
                   transition: 'background-color 0.2s'
                 }}
                 onMouseOver={(e) => e.target.style.backgroundColor = '#FEF2F2'}
-                onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}>
+                onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
+                onClick={async () => { try { await apiClient.delete(`/attachments/${attachment.id}`); setAttachments(prev => prev.filter(x => x.id !== attachment.id)); } catch {} }}>
                   <TrashIcon size={16} />
                 </button>
               </div>
@@ -441,4 +424,3 @@ const AttachmentsFixed = () => {
 };
 
 export default AttachmentsFixed;
-

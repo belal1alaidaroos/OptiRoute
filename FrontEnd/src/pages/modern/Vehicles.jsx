@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   PageContainer,
   PageHeader,
@@ -37,6 +37,7 @@ import {
   MailIcon,
   PhoneIcon
 } from '../../components/icons/SVGIcons';
+import apiClient from '../../lib/apiClient';
 
 const Vehicles = () => {
   // State management
@@ -70,8 +71,7 @@ const Vehicles = () => {
     notes: ''
   });
 
-  // Sample data — replace with API data later
-  const vehicles = [
+  const [vehicles, setVehicles] = useState([
     {
       id: 1,
       plateNumber: 'ABC-123',
@@ -135,7 +135,40 @@ const Vehicles = () => {
       registrationExpiry: '2024-12-31',
       notes: 'Currently in workshop for engine check.'
     }
-  ];
+  ]);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const { data } = await apiClient.get('/vehicles');
+        const mapped = (data || []).map(v => ({
+          id: v.id,
+          plateNumber: v.plateNumber,
+          make: v.make,
+          model: v.model,
+          year: v.year,
+          type: v.type || 'Truck',
+          capacity: v.capacity ? `${v.capacity} tons` : '',
+          fuelType: v.fuelType || 'Diesel',
+          status: v.status || 'Active',
+          driver: v.driverName || '',
+          driverContact: '',
+          fuelLevel: 0,
+          mileage: '',
+          location: v.hubName || '',
+          lastMaintenanceDate: v.lastMaintenanceDate?.split('T')[0] || '',
+          nextMaintenanceDate: '',
+          insuranceExpiry: '',
+          registrationExpiry: '',
+          notes: ''
+        }));
+        setVehicles(mapped);
+      } catch (err) {
+        console.error('Failed to load vehicles', err);
+      }
+    };
+    load();
+  }, []);
 
   // Filter vehicles based on search term
   const filteredVehicles = vehicles.filter(vehicle =>

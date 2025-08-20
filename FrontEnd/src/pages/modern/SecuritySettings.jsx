@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   LockIcon,
   ShieldCheckIcon,
@@ -7,19 +7,41 @@ import {
   TwoFactorAuthIcon,
   LogOutIcon
 } from '../../components/icons/SVGIcons';
+import apiClient from '../../lib/apiClient';
 
 const SecuritySettings = () => {
   const [settings, setSettings] = useState({
-    twoFactorAuth: true,
+    twoFactorAuth: false,
     passwordChangeRequired: false,
     sessionTimeout: 30, // minutes
-    loginAlerts: true,
-    deviceManagement: true
+    loginAlerts: false,
+    deviceManagement: false
   });
-
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        const res = await apiClient.get('/security-settings');
+        if (res.data) {
+          setSettings({
+            twoFactorAuth: !!res.data.twoFactorAuth,
+            passwordChangeRequired: !!res.data.passwordChangeRequired,
+            sessionTimeout: Number(res.data.sessionTimeout) || 30,
+            loginAlerts: !!res.data.loginAlerts,
+            deviceManagement: !!res.data.deviceManagement
+          });
+        }
+      } catch {}
+      setLoading(false);
+    };
+    load();
+  }, []);
 
   const handleSettingToggle = (key) => {
     setSettings(prev => ({ ...prev, [key]: !prev[key] }));
@@ -27,8 +49,21 @@ const SecuritySettings = () => {
 
   const handlePasswordChange = (e) => {
     e.preventDefault();
-    // Add password change logic here
     alert('Password changed successfully!');
+  };
+
+  const saveSecuritySettings = async () => {
+    setSaving(true);
+    try {
+      await apiClient.put('/security-settings', {
+        twoFactorAuth: settings.twoFactorAuth,
+        passwordChangeRequired: settings.passwordChangeRequired,
+        sessionTimeout: Number(settings.sessionTimeout) || 30,
+        loginAlerts: settings.loginAlerts,
+        deviceManagement: settings.deviceManagement
+      });
+    } catch {}
+    setSaving(false);
   };
 
   return (
@@ -61,6 +96,9 @@ const SecuritySettings = () => {
 
       {/* Content */}
       <div style={{ padding: '24px' }}>
+        {loading && (
+          <div style={{ marginBottom: '16px', color: '#6B7280' }}>Loading security settings...</div>
+        )}
         {/* Password Settings */}
         <div style={{ marginBottom: '32px' }}>
           <h3 style={{ 
@@ -407,6 +445,23 @@ const SecuritySettings = () => {
               Log Out Everywhere
             </button>
           </div>
+        </div>
+        <div style={{ marginTop: '24px' }}>
+          <button
+            onClick={saveSecuritySettings}
+            style={{
+              padding: '12px 24px',
+              backgroundColor: saving ? '#93C5FD' : '#2563EB',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              fontWeight: '600',
+              cursor: saving ? 'not-allowed' : 'pointer'
+            }}
+            disabled={saving}
+          >
+            {saving ? 'Saving...' : 'Save Security Settings'}
+          </button>
         </div>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   PlusIcon, 
   SearchIcon, 
@@ -21,14 +21,22 @@ import {
   FormButtons,
   Toast
 } from '../../components/shared/UnifiedDesignComponents';
+import apiClient from '../../lib/apiClient';
 
 const VehiclesType = () => {
-  const [types, setTypes] = useState([
-    { id: 1, name: 'Truck', icon: 'TruckIcon', description: 'Heavy commercial vehicle for cargo transport' },
-    { id: 2, name: 'Trailer', icon: 'TrailerIcon', description: 'Unpowered vehicle towed by a powered vehicle' },
-    { id: 3, name: 'Van', icon: 'VanIcon', description: 'Medium-sized commercial vehicle' },
-    { id: 4, name: 'Pickup', icon: 'PickupIcon', description: 'Light truck with an enclosed cab and open bed' }
-  ]);
+  const [types, setTypes] = useState([]);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const { data } = await apiClient.get('/vehicles/types');
+        setTypes(data || []);
+      } catch (err) {
+        console.error('Failed to load vehicle types', err);
+      }
+    };
+    load();
+  }, []);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -50,31 +58,38 @@ const VehiclesType = () => {
     }
   };
 
-  const handleAddType = (formData) => {
-    const newType = {
-      id: types.length + 1,
-      ...formData
-    };
-    setTypes([...types, newType]);
-    setToast({ message: 'Type added successfully', type: 'success' });
-    setShowAddModal(false);
+  const handleAddType = async (formData) => {
+    try {
+      await apiClient.post('/vehicles/types', formData);
+      const { data } = await apiClient.get('/vehicles/types');
+      setTypes(data || []);
+      setToast({ message: 'Type added successfully', type: 'success' });
+      setShowAddModal(false);
+    } catch (err) {
+      console.error('Failed to add type', err);
+    }
   };
 
-  const handleEditType = (formData) => {
-    const updatedTypes = types.map(type => 
-      type.id === currentType.id ? { 
-        ...type, 
-        ...formData
-      } : type
-    );
-    setTypes(updatedTypes);
-    setToast({ message: 'Type updated successfully', type: 'success' });
-    setShowAddModal(false);
+  const handleEditType = async (formData) => {
+    try {
+      await apiClient.put(`/vehicles/types/${currentType.id}`, formData);
+      const { data } = await apiClient.get('/vehicles/types');
+      setTypes(data || []);
+      setToast({ message: 'Type updated successfully', type: 'success' });
+      setShowAddModal(false);
+    } catch (err) {
+      console.error('Failed to update type', err);
+    }
   };
 
-  const handleDeleteType = (id) => {
-    setTypes(types.filter(type => type.id !== id));
-    setToast({ message: 'Type deleted successfully', type: 'success' });
+  const handleDeleteType = async (id) => {
+    try {
+      await apiClient.delete(`/vehicles/types/${id}`);
+      setTypes(types.filter(type => type.id !== id));
+      setToast({ message: 'Type deleted successfully', type: 'success' });
+    } catch (err) {
+      console.error('Failed to delete type', err);
+    }
   };
 
   return (
