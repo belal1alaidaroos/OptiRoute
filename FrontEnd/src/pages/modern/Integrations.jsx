@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   GlobeIcon, 
   PlusIcon, 
@@ -10,57 +10,24 @@ import {
   RefreshIcon,
   LinkIcon
 } from '../../components/icons/SVGIcons';
+import apiClient from '../../lib/apiClient';
 
 const IntegrationsFixed = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
 
-  const integrations = [
-    {
-      id: 1,
-      name: 'Google Maps API',
-      description: 'Real-time mapping and route optimization',
-      category: 'Maps',
-      status: 'Connected',
-      lastSync: '2024-01-15 10:30',
-      apiKey: 'AIza***************xyz',
-      version: 'v3.0',
-      usage: '85%'
-    },
-    {
-      id: 2,
-      name: 'Twilio SMS',
-      description: 'SMS notifications and alerts',
-      category: 'Communication',
-      status: 'Connected',
-      lastSync: '2024-01-15 09:45',
-      apiKey: 'AC***************123',
-      version: 'v2022-05-01',
-      usage: '42%'
-    },
-    {
-      id: 3,
-      name: 'Fuel Price API',
-      description: 'Real-time fuel price data',
-      category: 'Data',
-      status: 'Disconnected',
-      lastSync: '2024-01-10 14:20',
-      apiKey: 'fp***************456',
-      version: 'v1.2',
-      usage: '0%'
-    },
-    {
-      id: 4,
-      name: 'Weather API',
-      description: 'Weather conditions for route planning',
-      category: 'Data',
-      status: 'Connected',
-      lastSync: '2024-01-15 11:15',
-      apiKey: 'ow***************789',
-      version: 'v2.5',
-      usage: '23%'
-    }
-  ];
+  const [integrations, setIntegrations] = useState([]);
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const { data } = await apiClient.get('/integrations');
+        setIntegrations(data || []);
+      } catch (err) {
+        console.error('Failed to load integrations', err);
+      }
+    };
+    load();
+  }, []);
 
   const categories = ['all', 'Maps', 'Communication', 'Data', 'Analytics'];
 

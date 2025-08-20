@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   CogIcon,
   GlobeIcon,
@@ -9,6 +9,7 @@ import {
   CheckIcon,
   SaveIcon
 } from '../../components/icons/SVGIcons';
+import apiClient from '../../lib/apiClient';
 
 const GeneralSettings = () => {
   const [timezone, setTimezone] = useState('UTC');
@@ -16,6 +17,30 @@ const GeneralSettings = () => {
   const [timeFormat, setTimeFormat] = useState('12h');
   const [currency, setCurrency] = useState('USD');
   const [defaultLanguage, setDefaultLanguage] = useState('en');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setLoading(true);
+        const { data } = await apiClient.get('/general-settings');
+        if (data) {
+          setTimezone(data.timezone || 'UTC');
+          setDateFormat(data.dateFormat || 'MM/DD/YYYY');
+          setTimeFormat(data.timeFormat || '12h');
+          setCurrency(data.currency || 'USD');
+          setDefaultLanguage(data.defaultLanguage || 'en');
+        }
+      } catch (err) {
+        console.error('Failed to load general settings', err);
+        setError('Failed to load settings');
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
 
   const timezones = [
     'UTC',
@@ -55,9 +80,23 @@ const GeneralSettings = () => {
     { code: 'de', name: 'Deutsch' }
   ];
 
-  const saveSettings = () => {
-    // Implement save logic here
-    alert('General settings saved successfully!');
+  const saveSettings = async () => {
+    try {
+      setLoading(true);
+      await apiClient.put('/general-settings', {
+        timezone,
+        dateFormat,
+        timeFormat,
+        currency,
+        defaultLanguage
+      });
+      alert('General settings saved successfully!');
+    } catch (err) {
+      console.error('Failed to save general settings', err);
+      alert('Failed to save settings');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -89,6 +128,8 @@ const GeneralSettings = () => {
           <CogIcon size={24} color="#3B82F6" />
           General Settings
         </h2>
+        {loading && <span style={{color:'#6B7280'}}>Saving/Loading...</span>}
+        {error && <span style={{color:'#EF4444'}}>{error}</span>}
       </div>
 
       {/* Content */}
