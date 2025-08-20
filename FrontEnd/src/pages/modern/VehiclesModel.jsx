@@ -22,30 +22,13 @@ import {
   SelectField,
   StatusBadge
 } from '../../components/shared/UnifiedDesignComponents';
+import apiClient from '../../lib/apiClient';
 
 const VehiclesModel = () => {
-  // Mock data services
-  const mockDataService = {
-    getMakes: () => [
-      { id: 1, name: 'Mercedes' },
-      { id: 2, name: 'Volvo' },
-      { id: 3, name: 'MAN' },
-      { id: 4, name: 'Scania' }
-    ],
-    getTypes: () => [
-      { id: 1, name: 'Truck' },
-      { id: 2, name: 'Trailer' },
-      { id: 3, name: 'Van' },
-      { id: 4, name: 'Pickup' }
-    ]
-  };
+  // Lookups
 
   // State management
-  const [models, setModels] = useState([
-    { id: 1, name: 'Actros', makeId: 1, typeId: 1, yearIntroduced: 1996, isActive: true },
-    { id: 2, name: 'FH16', makeId: 2, typeId: 1, yearIntroduced: 1993, isActive: true },
-    { id: 3, name: 'TGX', makeId: 3, typeId: 1, yearIntroduced: 2007, isActive: true }
-  ]);
+  const [models, setModels] = useState([]);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -54,10 +37,23 @@ const VehiclesModel = () => {
   const [makes, setMakes] = useState([]);
   const [types, setTypes] = useState([]);
 
-  // Load lookup data
+  // Load data
   useEffect(() => {
-    setMakes(mockDataService.getMakes());
-    setTypes(mockDataService.getTypes());
+    const load = async () => {
+      try {
+        const [makesRes, typesRes, modelsRes] = await Promise.all([
+          apiClient.get('/vehicles/makes'),
+          apiClient.get('/vehicles/types'),
+          apiClient.get('/vehicles/models')
+        ]);
+        setMakes(makesRes.data || []);
+        setTypes(typesRes.data || []);
+        setModels(modelsRes.data || []);
+      } catch (err) {
+        console.error('Failed to load vehicle models lookups', err);
+      }
+    };
+    load();
   }, []);
 
   // Filter models - FIXED SYNTAX ERROR HERE
@@ -72,39 +68,50 @@ const VehiclesModel = () => {
     );
   });
 
-  const handleAddModel = (formData) => {
-    const newModel = {
-      id: models.length + 1,
-      ...formData,
-      makeId: Number(formData.makeId),
-      typeId: Number(formData.typeId),
-      yearIntroduced: Number(formData.yearIntroduced),
-      isActive: formData.isActive === 'true'
-    };
-    setModels([...models, newModel]);
-    setToast({ message: 'Model added successfully', type: 'success' });
-    setShowAddModal(false);
-  };
-
-  const handleEditModel = (formData) => {
-    const updatedModels = models.map(model => 
-      model.id === currentModel.id ? { 
-        ...model, 
-        ...formData,
-        makeId: Number(formData.makeId),
-        typeId: Number(formData.typeId),
+  const handleAddModel = async (formData) => {
+    try {
+      await apiClient.post('/vehicles/models', {
+        name: formData.name,
+        makeId: formData.makeId,
+        typeId: formData.typeId,
         yearIntroduced: Number(formData.yearIntroduced),
         isActive: formData.isActive === 'true'
-      } : model
-    );
-    setModels(updatedModels);
-    setToast({ message: 'Model updated successfully', type: 'success' });
-    setShowAddModal(false);
+      });
+      const { data } = await apiClient.get('/vehicles/models');
+      setModels(data || []);
+      setToast({ message: 'Model added successfully', type: 'success' });
+      setShowAddModal(false);
+    } catch (err) {
+      console.error('Failed to add model', err);
+    }
   };
 
-  const handleDeleteModel = (id) => {
-    setModels(models.filter(model => model.id !== id));
-    setToast({ message: 'Model deleted successfully', type: 'success' });
+  const handleEditModel = async (formData) => {
+    try {
+      await apiClient.put(`/vehicles/models/${currentModel.id}`, {
+        name: formData.name,
+        makeId: formData.makeId,
+        typeId: formData.typeId,
+        yearIntroduced: Number(formData.yearIntroduced),
+        isActive: formData.isActive === 'true'
+      });
+      const { data } = await apiClient.get('/vehicles/models');
+      setModels(data || []);
+      setToast({ message: 'Model updated successfully', type: 'success' });
+      setShowAddModal(false);
+    } catch (err) {
+      console.error('Failed to update model', err);
+    }
+  };
+
+  const handleDeleteModel = async (id) => {
+    try {
+      await apiClient.delete(`/vehicles/models/${id}`);
+      setModels(models.filter(model => model.id !== id));
+      setToast({ message: 'Model deleted successfully', type: 'success' });
+    } catch (err) {
+      console.error('Failed to delete model', err);
+    }
   };
 
   return (

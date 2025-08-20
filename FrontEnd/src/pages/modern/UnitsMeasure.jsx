@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   PlusIcon, 
   SearchIcon, 
@@ -18,13 +18,10 @@ import {
   StatusBadge,
   SelectField
 } from '../../components/shared/UnifiedDesignComponents';
+import apiClient from '../../lib/apiClient';
 
 const UnitsMeasure = () => {
-  const [units, setUnits] = useState([
-    { id: 1, name: 'Liter', symbol: 'L', category: 'Volume', status: 'Active' },
-    { id: 2, name: 'Kilogram', symbol: 'kg', category: 'Weight', status: 'Active' },
-    { id: 3, name: 'Meter', symbol: 'm', category: 'Length', status: 'Inactive' }
-  ]);
+  const [units, setUnits] = useState([]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentUnit, setCurrentUnit] = useState(null);
@@ -33,6 +30,19 @@ const UnitsMeasure = () => {
   const [toast, setToast] = useState(null);
 
   const categories = ['Volume', 'Weight', 'Length', 'Area', 'Temperature', 'Speed'];
+  useEffect(() => {
+    const load = async () => {
+      try {
+        // default category example: Volume
+        const { data } = await apiClient.get('/units-measure/by-category/Volume');
+        setUnits(data || []);
+      } catch (err) {
+        console.error('Failed to load units', err);
+      }
+    };
+    load();
+  }, []);
+
   const headers = ['Unit Name', 'Symbol', 'Category', 'Status', 'Actions'];
 
   const filteredUnits = units.filter(unit =>
