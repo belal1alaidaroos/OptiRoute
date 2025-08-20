@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Identity;
 using OptiRoute360.Data.Interfaces;
 using OptiRoute360.Data.Entities;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.Identity.Web;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,6 +30,7 @@ builder.Services.AddIdentity<User, IdentityRole<Guid>>()
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddCors();
 builder.Services.AddScoped<DatabaseInitializer>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
@@ -40,6 +42,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IPermissionService, PermissionService>();
 builder.Services.AddScoped<IAppearanceService, AppearanceService>();
+builder.Services.AddScoped<SystemEntityService>();
 
 builder.Services.AddAuthorization(options =>
 {
@@ -50,22 +53,41 @@ builder.Services.AddAuthorization(options =>
 // AutoMapper
 builder.Services.AddAutoMapper(cfg => cfg.AddMaps(Assembly.GetExecutingAssembly()));
 
-// JWT Authentication
-//builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-//    .AddJwtBearer(options =>
-//    {
-//        options.TokenValidationParameters = new TokenValidationParameters
-//        {
-//            ValidateIssuer = true,
-//            ValidateAudience = true,
-//            ValidateLifetime = true,
-//            ValidateIssuerSigningKey = true,
-//            ValidIssuer = builder.Configuration["Jwt:Issuer"],
-//            ValidAudience = builder.Configuration["Jwt:Audience"],
-//            IssuerSigningKey = new SymmetricSecurityKey(
-//                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
-//        };
-//    });
+// Authentication: support Azure AD (if configured) or fallback JWT
+var azureClientId = builder.Configuration["AzureAd:ClientId"];
+if (!string.IsNullOrWhiteSpace(azureClientId))
+{
+    builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+        .AddMicrosoftIdentityWebApi(options =>
+        {
+            builder.Configuration.Bind("AzureAd", options);
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidAudience = builder.Configuration["AzureAd:Audience"],
+                ValidateLifetime = true
+            };
+        }, options => { builder.Configuration.Bind("AzureAd", options); });
+}
+else
+{
+    builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+        .AddJwtBearer(options =>
+        {
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                ValidIssuer = builder.Configuration["Jwt:Issuer"],
+                ValidAudience = builder.Configuration["Jwt:Audience"],
+                IssuerSigningKey = new SymmetricSecurityKey(
+                    Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+            };
+        });
+}
 builder.Services.AddSingleton(new TokenValidationParameters
 {
     ValidateIssuer = true,
@@ -79,6 +101,12 @@ builder.Services.AddSingleton(new TokenValidationParameters
 });
 
 var app = builder.Build();
+// CORS: allow frontend for local dev
+app.UseCors(policy => policy
+    .WithOrigins("http://localhost:5173")
+    .AllowAnyHeader()
+    .AllowAnyMethod()
+    .AllowCredentials());
 
 
 // Database initialization

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   PageContainer,
   PageHeader,
@@ -24,43 +24,12 @@ import {
   AlertTriangleIcon,
   FlagIcon
 } from '../../components/icons/SVGIcons';
+import apiClient from '../../lib/apiClient';
 
 const Regions = () => {
-  const [countries] = useState([
-    { id: 1, name: 'Saudi Arabia', code: 'SA' },
-    { id: 2, name: 'United Arab Emirates', code: 'AE' },
-    { id: 3, name: 'Egypt', code: 'EG' }
-  ]);
+  const [countries, setCountries] = useState([]);
 
-  const [regions, setRegions] = useState([
-    { 
-      id: 1, 
-      name: 'Riyadh', 
-      countryId: 1,
-      status: 'Active',
-      priority: 'High',
-      timezone: 'UTC+3',
-      description: 'Central region of Saudi Arabia'
-    },
-    { 
-      id: 2, 
-      name: 'Eastern Province', 
-      countryId: 1,
-      status: 'Active',
-      priority: 'Medium',
-      timezone: 'UTC+3',
-      description: 'Eastern region of Saudi Arabia'
-    },
-    { 
-      id: 3, 
-      name: 'Dubai', 
-      countryId: 2,
-      status: 'Active',
-      priority: 'High',
-      timezone: 'UTC+4',
-      description: 'Major city in UAE'
-    }
-  ]);
+  const [regions, setRegions] = useState([]);
 
   const [statuses] = useState(['Active', 'Inactive', 'Pending']);
   const [priorities] = useState(['High', 'Medium', 'Low']);
@@ -86,9 +55,24 @@ const Regions = () => {
     description: ''
   });
 
+  useEffect(() => {
+    (async () => {
+      try {
+        const [countriesRes, regionsRes] = await Promise.all([
+          apiClient.get('/countries'),
+          apiClient.get('/regions'),
+        ]);
+        setCountries(countriesRes.data);
+        setRegions(regionsRes.data);
+      } catch (e) {
+        setToast({ message: 'Failed to load regions', type: 'error' });
+      }
+    })();
+  }, []);
+
   // Filter regions
   const filteredRegions = regions.filter(region =>
-    region.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (region.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     countries.find(c => c.id === region.countryId)?.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -132,48 +116,53 @@ const Regions = () => {
   };
 
   // Handle form submission
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    setTimeout(() => {
+    try {
       if (selectedRegion) {
-        // Update existing region
-        setRegions(regions.map(r => 
-          r.id === selectedRegion.id ? { ...r, ...formData } : r
-        ));
+        await apiClient.put(`/regions/${selectedRegion.id}`, {
+          name: formData.name,
+          countryId: formData.countryId,
+          status: formData.status,
+          timezone: formData.timezone,
+          priority: formData.priority,
+        });
       } else {
-        // Add new region
-        const newRegion = {
-          id: Math.max(...regions.map(r => r.id)) + 1,
-          ...formData
-        };
-        setRegions([...regions, newRegion]);
+        await apiClient.post('/regions', {
+          name: formData.name,
+          countryId: formData.countryId,
+          timezone: formData.timezone,
+          status: formData.status,
+          priority: formData.priority,
+        });
       }
-      
-      setIsLoading(false);
+      const refreshed = await apiClient.get('/regions');
+      setRegions(refreshed.data);
       setShowAddModal(false);
       setShowEditModal(false);
-      setToast({
-        message: selectedRegion ? 'Region updated successfully!' : 'Region added successfully!',
-        type: 'success'
-      });
-    }, 1000);
+      setToast({ message: selectedRegion ? 'Region updated successfully!' : 'Region added successfully!', type: 'success' });
+    } catch (e) {
+      setToast({ message: 'Operation failed', type: 'error' });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Handle delete confirmation
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     setIsLoading(true);
-    
-    setTimeout(() => {
-      setRegions(regions.filter(r => r.id !== selectedRegion.id));
+    try {
+      await apiClient.delete(`/regions/${selectedRegion.id}`);
+      const refreshed = await apiClient.get('/regions');
+      setRegions(refreshed.data);
+      setToast({ message: 'Region deleted successfully!', type: 'success' });
+    } catch (e) {
+      setToast({ message: 'Delete failed', type: 'error' });
+    } finally {
       setIsLoading(false);
       setShowDeleteModal(false);
-      setToast({
-        message: 'Region deleted successfully!',
-        type: 'success'
-      });
-    }, 1000);
+    }
   };
 
   // Close toast
