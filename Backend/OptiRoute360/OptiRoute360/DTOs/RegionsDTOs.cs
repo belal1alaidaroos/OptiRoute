@@ -15,3 +15,10 @@ public class CreateRegionDto {
     [Required] public Guid CountryId { get; set; }
     [Required] public string Timezone { get; set; }
 }
+
+public class UpdateRegionDto {
+    [StringLength(100)] public string Name { get; set; }
+    public Guid? CountryId { get; set; }
+    public string Status { get; set; }
+    public string Timezone { get; set; }
+}

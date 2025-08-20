@@ -55,6 +55,12 @@ public class MappingProfile : Profile
         // User Profile
         CreateMap<UserProfile, UserProfileDto>().ReverseMap();
         CreateMap<UpdateUserProfileDto, UserProfile>();
+
+        // Regions
+        CreateMap<Region, RegionDto>()
+            .ForMember(d => d.CountryName, o => o.MapFrom(s => s.Country.Name));
+        CreateMap<CreateRegionDto, Region>();
+        CreateMap<UpdateRegionDto, Region>();
     }
 }
 

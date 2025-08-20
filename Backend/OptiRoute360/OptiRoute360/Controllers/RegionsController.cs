@@ -38,6 +38,38 @@ namespace OptiRoute360.Controllers
             return Ok(_mapper.Map<IEnumerable<RegionDto>>(regions));
         }
 
+        [HttpPost]
+        public async Task<ActionResult<RegionDto>> Create([FromBody] CreateRegionDto dto)
+        {
+            if (!await _countryRepository.ExistsAsync(c => c.Id == dto.CountryId))
+                return BadRequest("Invalid Country ID");
+
+            var entity = _mapper.Map<Region>(dto);
+            await _repository.AddAsync(entity);
+            return CreatedAtAction(nameof(GetAll), new { version = "1.0" }, _mapper.Map<RegionDto>(entity));
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(Guid id, [FromBody] UpdateRegionDto dto)
+        {
+            var entity = await _repository.GetByIdAsync(id);
+            if (entity == null) return NotFound();
+            if (dto.CountryId.HasValue && !await _countryRepository.ExistsAsync(c => c.Id == dto.CountryId.Value))
+                return BadRequest("Invalid Country ID");
+            _mapper.Map(dto, entity);
+            await _repository.UpdateAsync(entity);
+            return NoContent();
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(Guid id)
+        {
+            var entity = await _repository.GetByIdAsync(id);
+            if (entity == null) return NotFound();
+            await _repository.DeleteAsync(entity);
+            return NoContent();
+        }
+
         [HttpPost("import")]
         public async Task<IActionResult> ImportRegions([FromBody] List<CreateRegionDto> dtos)
         {
