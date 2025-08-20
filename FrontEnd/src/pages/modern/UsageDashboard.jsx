@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   ChartBarIcon, 
   UserIcon, 
@@ -9,20 +9,44 @@ import {
   TrendingUpIcon,
   BellIcon
 } from '../../components/icons/SVGIcons';
+import apiClient from '../../lib/apiClient';
 
 const UsageDashboardFixed = () => {
   const [timeRange, setTimeRange] = useState('7days');
+  const [usageData, setUsageData] = useState({
+    totalUsers: 0,
+    activeUsers: 0,
+    totalVehicles: 0,
+    activeVehicles: 0,
+    totalTrips: 0,
+    completedTrips: 0,
+    dataUsage: '0 GB',
+    apiCalls: 0
+  });
 
-  const usageData = {
-    totalUsers: 156,
-    activeUsers: 89,
-    totalVehicles: 45,
-    activeVehicles: 38,
-    totalTrips: 1247,
-    completedTrips: 1198,
-    dataUsage: '2.4 GB',
-    apiCalls: 15420
-  };
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const { data } = await apiClient.get('/usage-dashboard');
+        const first = Array.isArray(data) ? data[0] : data;
+        if (first) {
+          setUsageData({
+            totalUsers: first.totalUsers || 0,
+            activeUsers: first.activeUsers || 0,
+            totalVehicles: first.totalVehicles || 0,
+            activeVehicles: first.activeVehicles || 0,
+            totalTrips: first.totalTrips || 0,
+            completedTrips: first.completedTrips || 0,
+            dataUsage: first.dataUsage || '0 GB',
+            apiCalls: first.apiCalls || 0
+          });
+        }
+      } catch (err) {
+        console.error('Failed to load usage dashboard', err);
+      }
+    };
+    load();
+  }, []);
 
   return (
     <div style={{ padding: '32px', backgroundColor: '#F8FAFC', minHeight: '100vh' }}>

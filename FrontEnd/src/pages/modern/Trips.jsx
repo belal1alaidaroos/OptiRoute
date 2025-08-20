@@ -28,6 +28,7 @@ import {
   ChevronRightIcon
 } from '../../components/icons/SVGIcons';
 import Pagination from '../../components/shared/Pagination';
+import apiClient from '../../lib/apiClient';
 
 const Trips = () => {
   // Constants
@@ -75,57 +76,34 @@ const Trips = () => {
   const [formData, setFormData] = useState(DEFAULT_FORM_DATA);
   const [trips, setTrips] = useState([]);
 
-  // Initialize with sample data
+  // Load trips from backend
   useEffect(() => {
-    const sampleTrips = [
-      {
-        id: 1,
-        tripNumber: 'TRP-2024-001',
-        tripType: 'Delivery', // Added
-        driver: 'Ahmed Ali',
-        vehicle: 'ABC-123',
-        startHub: 'Riyadh Hub',
-        endHub: 'Jeddah Hub',
-        startDate: '2024-01-15',
-        endDate: '2024-01-16',
-        status: 'Completed',
-        distance: '950 km',
-        duration: '10h 30m',
-        stops: [
-          { city: 'Riyadh', arrival: '08:00', departure: '08:30' },
-          { city: 'Taif', arrival: '12:00', departure: '12:30' }
-        ],
-        mapIntegrationKey: 'map123456',
-        fuelConsumed: '120 L',
-        notes: 'Delivered fragile items',
-        createdDate: '2024-01-10',
-        updatedDate: '2024-01-16'
-      },
-      {
-        id: 2,
-        tripNumber: 'TRP-2024-002',
-        tripType: 'Pickup', // Added
-        driver: 'Mohammed Hassan',
-        vehicle: 'XYZ-456',
-        startHub: 'Dammam Hub',
-        endHub: 'Riyadh Hub',
-        startDate: '2024-01-16',
-        endDate: '2024-01-17',
-        status: 'In Progress',
-        distance: '400 km',
-        duration: '5h 15m',
-        stops: [
-          { city: 'Dammam', arrival: '07:00', departure: '07:30' },
-          { city: 'Hofuf', arrival: '09:30', departure: '10:00' }
-        ],
-        mapIntegrationKey: 'map789012',
-        fuelConsumed: '65 L',
-        notes: 'Regular shipment',
-        createdDate: '2024-01-11',
-        updatedDate: '2024-01-16'
-      },
-    ];
-    setTrips(sampleTrips);
+    const load = async () => {
+      try {
+        const { data } = await apiClient.get('/trips');
+        const mapped = (data || []).map(t => ({
+          id: t.id,
+          tripNumber: t.tripNumber,
+          tripType: t.tripType || 'Delivery',
+          driver: t.driverName,
+          vehicle: t.vehiclePlateNumber,
+          startHub: t.startHubName,
+          endHub: t.endHubName,
+          startDate: t.startDate?.split('T')[0] || '',
+          endDate: t.endDate?.split('T')[0] || '',
+          status: t.status || 'Scheduled',
+          distance: t.distance ? `${t.distance} km` : '',
+          duration: t.duration ? `${t.duration} min` : '',
+          stops: [],
+          mapIntegrationKey: '',
+          notes: ''
+        }));
+        setTrips(mapped);
+      } catch (err) {
+        console.error('Failed to load trips', err);
+      }
+    };
+    load();
   }, []);
 
   // Filter trips based on filters

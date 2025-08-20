@@ -14,6 +14,7 @@ import {
   KeyIcon,
   PencilIcon
 } from '../../components/icons/SVGIcons';
+import apiClient from '../../lib/apiClient';
 
 const UserManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -44,54 +45,28 @@ const UserManagement = () => {
 
   const roles = ['all', 'Admin', 'Manager', 'Driver', 'Dispatcher'];
 
-  // Initialize users
+  // Initialize users from backend
   useEffect(() => {
-    setUsers([
-      {
-        id: 1,
-        name: 'Ahmed Al-Rashid',
-        email: 'ahmed@optiroute360.com',
-        phone: '+966 50 123 4567',
-        role: 'Admin',
-        status: 'Active',
-        lastLogin: '2024-01-15 10:30',
-        permissions: ['Full Access'],
-        avatar: 'A'
-      },
-      {
-        id: 2,
-        name: 'Sarah Mohammed',
-        email: 'sarah@optiroute360.com',
-        phone: '+966 55 234 5678',
-        role: 'Manager',
-        status: 'Active',
-        lastLogin: '2024-01-15 09:15',
-        permissions: ['Fleet Management', 'Reports'],
-        avatar: 'S'
-      },
-      {
-        id: 3,
-        name: 'Omar Hassan',
-        email: 'omar@optiroute360.com',
-        phone: '+966 56 345 6789',
-        role: 'Driver',
-        status: 'Inactive',
-        lastLogin: '2024-01-14 16:45',
-        permissions: ['Vehicle Access'],
-        avatar: 'O'
-      },
-      {
-        id: 4,
-        name: 'Fatima Ali',
-        email: 'fatima@optiroute360.com',
-        phone: '+966 54 456 7890',
-        role: 'Dispatcher',
-        status: 'Active',
-        lastLogin: '2024-01-15 11:20',
-        permissions: ['Route Planning', 'Tracking'],
-        avatar: 'F'
+    const load = async () => {
+      try {
+        const { data } = await apiClient.get('/users');
+        const mapped = (data || []).map(u => ({
+          id: u.id,
+          name: u.fullName || u.name,
+          email: u.email,
+          phone: u.phone,
+          role: u.role || 'User',
+          status: u.isActive ? 'Active' : 'Inactive',
+          lastLogin: u.lastLogin,
+          permissions: u.permissions || [],
+          avatar: (u.fullName || u.name || 'U').charAt(0).toUpperCase()
+        }));
+        setUsers(mapped);
+      } catch (err) {
+        console.error('Failed to load users', err);
       }
-    ]);
+    };
+    load();
   }, []);
 
   const filteredUsers = users.filter(user => {
@@ -194,47 +169,61 @@ const UserManagement = () => {
     if (!validateForm()) return;
     
     if (showAddModal) {
-      // Add new user
-      const newUser = {
-        id: users.length > 0 ? Math.max(...users.map(u => u.id)) + 1 : 1,
-        name: formData.name,
+      apiClient.post('/users', {
+        fullName: formData.name,
         email: formData.email,
         phone: formData.phone,
         role: formData.role,
-        status: formData.status,
-        lastLogin: new Date().toISOString().split('T')[0] + ' ' + 
-                  new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        permissions: [...formData.permissions],
-        avatar: formData.name.charAt(0).toUpperCase()
-      };
-      
-      setUsers([...users, newUser]);
+        isActive: formData.status === 'Active'
+      }).then(async () => {
+        const { data } = await apiClient.get('/users');
+        setUsers((data || []).map(u => ({
+          id: u.id,
+          name: u.fullName || u.name,
+          email: u.email,
+          phone: u.phone,
+          role: u.role || 'User',
+          status: u.isActive ? 'Active' : 'Inactive',
+          lastLogin: u.lastLogin,
+          permissions: u.permissions || [],
+          avatar: (u.fullName || u.name || 'U').charAt(0).toUpperCase()
+        })));
+      });
     } else if (editUser) {
-      // Update existing user
-      const updatedUsers = users.map(user => 
-        user.id === editUser.id 
-          ? { 
-              ...user, 
-              name: formData.name,
-              email: formData.email,
-              phone: formData.phone,
-              role: formData.role,
-              status: formData.status,
-              permissions: [...formData.permissions],
-              avatar: formData.name.charAt(0).toUpperCase()
-            } 
-          : user
-      );
-      
-      setUsers(updatedUsers);
+      apiClient.put(`/users/${editUser.id}`, {
+        fullName: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        role: formData.role,
+        isActive: formData.status === 'Active',
+        permissions: formData.permissions
+      }).then(async () => {
+        const { data } = await apiClient.get('/users');
+        setUsers((data || []).map(u => ({
+          id: u.id,
+          name: u.fullName || u.name,
+          email: u.email,
+          phone: u.phone,
+          role: u.role || 'User',
+          status: u.isActive ? 'Active' : 'Inactive',
+          lastLogin: u.lastLogin,
+          permissions: u.permissions || [],
+          avatar: (u.fullName || u.name || 'U').charAt(0).toUpperCase()
+        })));
+      });
     }
     
     closeModals();
   };
 
-  const handleDeleteUser = (userId) => {
-    setUsers(users.filter(user => user.id !== userId));
-    setShowDeleteConfirm(null);
+  const handleDeleteUser = async (userId) => {
+    try {
+      await apiClient.delete(`/users/${userId}`);
+      setUsers(users.filter(user => user.id !== userId));
+      setShowDeleteConfirm(null);
+    } catch (err) {
+      console.error('Failed to delete user', err);
+    }
   };
 
   return (
