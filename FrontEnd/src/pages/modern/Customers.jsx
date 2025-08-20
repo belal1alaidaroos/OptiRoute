@@ -26,64 +26,11 @@ import {
   FormButtons,
   Toast
 } from '../../components/shared/UnifiedDesignComponents';
-
-// Mock data services - These will be replaced with real API calls later
-const mockDataService = {
-  getCountries: () => [
-    { id: 1, name: 'Saudi Arabia', code: 'SA' },
-    { id: 2, name: 'United Arab Emirates', code: 'AE' },
-    { id: 3, name: 'Kuwait', code: 'KW' }
-  ],
-
-  getRegions: (countryId) => {
-    const allRegions = [
-      { id: 1, country_id: 1, name: 'Riyadh Province' },
-      { id: 2, country_id: 1, name: 'Makkah Province' },
-      { id: 3, country_id: 1, name: 'Eastern Province' },
-      { id: 4, country_id: 2, name: 'Dubai' },
-      { id: 5, country_id: 2, name: 'Abu Dhabi' },
-      { id: 6, country_id: 3, name: 'Al Asimah' }
-    ];
-    return countryId ? allRegions.filter(r => r.country_id === countryId) : allRegions;
-  },
-
-  getCities: (regionId) => {
-    const allCities = [
-      { id: 1, region_id: 1, name: 'Riyadh' },
-      { id: 2, region_id: 1, name: 'Diriyah' },
-      { id: 3, region_id: 2, name: 'Makkah' },
-      { id: 4, region_id: 2, name: 'Jeddah' },
-      { id: 5, region_id: 3, name: 'Dammam' },
-      { id: 6, region_id: 3, name: 'Khobar' },
-      { id: 7, region_id: 4, name: 'Downtown Dubai' },
-      { id: 8, region_id: 5, name: 'Abu Dhabi City' },
-      { id: 9, region_id: 6, name: 'Kuwait City' }
-    ];
-    return regionId ? allCities.filter(c => c.region_id === regionId) : allCities;
-  }
-};
+import apiClient from '../../lib/apiClient';
 
 const Customers = () => {
   // Main state
-  const [customers, setCustomers] = useState([
-    {
-      id: 1,
-      customerId: 'CUST-001',
-      name: 'Ahmed Ali',
-      phone: '+966501234567',
-      landline: '+96611234567',
-      email: 'ahmed@example.com',
-      country_id: 1,
-      region_id: 1,
-      city_id: 1,
-      address: '123 King Fahd Road',
-      status: 'active',
-      joinDate: '2023-01-15',
-      totalOrders: 12,
-      totalValue: '45,000 SAR'
-    },
-    // More sample customers...
-  ]);
+  const [customers, setCustomers] = useState([]);
 
   // UI state
   const [searchTerm, setSearchTerm] = useState('');
@@ -99,53 +46,166 @@ const Customers = () => {
   const [selectedCountry, setSelectedCountry] = useState('');
   const [selectedRegion, setSelectedRegion] = useState('');
 
-  // Load lookup data
+  // Load initial data
   useEffect(() => {
-    setCountries(mockDataService.getCountries());
+    (async () => {
+      try {
+        const [countriesRes, customersRes] = await Promise.all([
+          apiClient.get('/countries'),
+          apiClient.get('/customers')
+        ]);
+        setCountries(countriesRes.data || []);
+        setCustomers((customersRes.data || []).map(c => ({
+          id: c.id,
+          customerId: c.customerId,
+          name: c.name,
+          phone: c.phone,
+          landline: c.landline,
+          email: c.email,
+          country_id: c.countryId,
+          region_id: c.regionId,
+          city_id: c.cityId,
+          address: c.address,
+          status: (c.status || 'Active').toLowerCase(),
+          joinDate: c.joinDate,
+          totalOrders: c.totalOrders,
+          totalValue: c.totalValue
+        })));
+      } catch (e) {
+        setToast({ message: 'Failed to load customers or lookups', type: 'error' });
+      }
+    })();
   }, []);
 
   useEffect(() => {
     if (selectedCountry) {
-      setRegions(mockDataService.getRegions(selectedCountry));
-      setSelectedRegion('');
-      setCities([]);
+      (async () => {
+        try {
+          const { data } = await apiClient.get('/regions', { params: { countryId: selectedCountry } });
+          setRegions(data || []);
+          setSelectedRegion('');
+          setCities([]);
+        } catch (e) {
+          setToast({ message: 'Failed to load regions', type: 'error' });
+        }
+      })();
     }
   }, [selectedCountry]);
 
   useEffect(() => {
     if (selectedRegion) {
-      setCities(mockDataService.getCities(selectedRegion));
+      (async () => {
+        try {
+          const { data } = await apiClient.get('/cities', { params: { regionId: selectedRegion } });
+          setCities(data || []);
+        } catch (e) {
+          setToast({ message: 'Failed to load cities', type: 'error' });
+        }
+      })();
     }
   }, [selectedRegion]);
 
   // Customer CRUD operations
-  const handleAddCustomer = (formData) => {
-    const newCustomer = {
-      id: customers.length + 1,
-      customerId: `CUST-${String(customers.length + 1).padStart(3, '0')}`,
-      ...formData,
-      status: formData.status || 'active',
-      joinDate: formData.joinDate || new Date().toISOString().split('T')[0],
-      totalOrders: 0,
-      totalValue: '0 SAR'
-    };
-    setCustomers([...customers, newCustomer]);
-    setToast({ message: 'Customer added successfully', type: 'success' });
-    setShowAddModal(false);
+  const handleAddCustomer = async (formData) => {
+    try {
+      const payload = {
+        customerId: `CUST-${Date.now()}`,
+        name: formData.name,
+        phone: formData.phone,
+        landline: formData.landline,
+        email: formData.email,
+        countryId: selectedCountry || formData.country_id,
+        regionId: selectedRegion || formData.region_id,
+        cityId: formData.city_id,
+        address: formData.address
+      };
+      await apiClient.post('/customers', payload);
+      const { data } = await apiClient.get('/customers');
+      setCustomers((data || []).map(c => ({
+        id: c.id,
+        customerId: c.customerId,
+        name: c.name,
+        phone: c.phone,
+        landline: c.landline,
+        email: c.email,
+        country_id: c.countryId,
+        region_id: c.regionId,
+        city_id: c.cityId,
+        address: c.address,
+        status: (c.status || 'Active').toLowerCase(),
+        joinDate: c.joinDate,
+        totalOrders: c.totalOrders,
+        totalValue: c.totalValue
+      })));
+      setToast({ message: 'Customer added successfully', type: 'success' });
+      setShowAddModal(false);
+    } catch (e) {
+      setToast({ message: 'Failed to add customer', type: 'error' });
+    }
   };
 
-  const handleEditCustomer = (formData) => {
-    const updatedCustomers = customers.map(c => 
-      c.id === currentCustomer.id ? { ...c, ...formData } : c
-    );
-    setCustomers(updatedCustomers);
-    setToast({ message: 'Customer updated successfully', type: 'success' });
-    setShowAddModal(false);
+  const handleEditCustomer = async (formData) => {
+    try {
+      const payload = {
+        name: formData.name,
+        phone: formData.phone,
+        landline: formData.landline,
+        email: formData.email,
+        countryId: selectedCountry || formData.country_id,
+        regionId: selectedRegion || formData.region_id,
+        cityId: formData.city_id,
+        address: formData.address,
+        status: formData.status
+      };
+      await apiClient.put(`/customers/${currentCustomer.id}`, payload);
+      const { data } = await apiClient.get('/customers');
+      setCustomers((data || []).map(c => ({
+        id: c.id,
+        customerId: c.customerId,
+        name: c.name,
+        phone: c.phone,
+        landline: c.landline,
+        email: c.email,
+        country_id: c.countryId,
+        region_id: c.regionId,
+        city_id: c.cityId,
+        address: c.address,
+        status: (c.status || 'Active').toLowerCase(),
+        joinDate: c.joinDate,
+        totalOrders: c.totalOrders,
+        totalValue: c.totalValue
+      })));
+      setToast({ message: 'Customer updated successfully', type: 'success' });
+      setShowAddModal(false);
+    } catch (e) {
+      setToast({ message: 'Failed to update customer', type: 'error' });
+    }
   };
 
-  const handleDeleteCustomer = (id) => {
-    setCustomers(customers.filter(c => c.id !== id));
-    setToast({ message: 'Customer deleted successfully', type: 'success' });
+  const handleDeleteCustomer = async (id) => {
+    try {
+      await apiClient.delete(`/customers/${id}`);
+      const { data } = await apiClient.get('/customers');
+      setCustomers((data || []).map(c => ({
+        id: c.id,
+        customerId: c.customerId,
+        name: c.name,
+        phone: c.phone,
+        landline: c.landline,
+        email: c.email,
+        country_id: c.countryId,
+        region_id: c.regionId,
+        city_id: c.cityId,
+        address: c.address,
+        status: (c.status || 'Active').toLowerCase(),
+        joinDate: c.joinDate,
+        totalOrders: c.totalOrders,
+        totalValue: c.totalValue
+      })));
+      setToast({ message: 'Customer deleted successfully', type: 'success' });
+    } catch (e) {
+      setToast({ message: 'Failed to delete customer', type: 'error' });
+    }
   };
 
   // Form submission
@@ -330,7 +390,7 @@ const Customers = () => {
               name="country_id"
               type="select"
               value={selectedCountry}
-              onChange={(e) => setSelectedCountry(Number(e.target.value))}
+              onChange={(e) => setSelectedCountry(e.target.value)}
               options={countries.map(c => ({ value: c.id, label: c.name }))}
               required
             />
@@ -339,7 +399,7 @@ const Customers = () => {
               name="region_id"
               type="select"
               value={selectedRegion}
-              onChange={(e) => setSelectedRegion(Number(e.target.value))}
+              onChange={(e) => setSelectedRegion(e.target.value)}
               options={regions.map(r => ({ value: r.id, label: r.name }))}
               disabled={!selectedCountry}
               required
