@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import apiClient from '../../lib/apiClient';
 import { 
   PlusIcon, 
   SearchIcon, 
@@ -20,11 +21,19 @@ import {
 } from '../../components/shared/UnifiedDesignComponents';
 
 const ServicesMode = () => {
-  const [modes, setModes] = useState([
-    { id: 1, name: 'On-Site', description: 'Service performed at customer location', status: 'Active' },
-    { id: 2, name: 'In-Shop', description: 'Customer brings vehicle to workshop', status: 'Active' },
-    { id: 3, name: 'Mobile', description: 'Our technician comes to you', status: 'Inactive' }
-  ]);
+  const [modes, setModes] = useState([]);
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await apiClient.get('/option-sets');
+        const list = (res.data || [])
+          .filter(x => (x.optionSetName || '').toLowerCase() === 'service-mode')
+          .map(x => ({ id: x.id, name: x.name, description: x.description || '', status: x.isActive ? 'Active' : 'Inactive' }));
+        setModes(list);
+      } catch {}
+    };
+    load();
+  }, []);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentMode, setCurrentMode] = useState(null);
@@ -65,26 +74,41 @@ const ServicesMode = () => {
     setToast({ message: `Viewing ${mode.name}`, type: 'info' });
   };
 
-  const handleDelete = (mode) => {
-    setModes(modes.filter(m => m.id !== mode.id));
-    setToast({ message: `${mode.name} deleted`, type: 'success' });
+  const handleDelete = async (mode) => {
+    try {
+      await apiClient.delete(`/option-sets/${mode.id}`);
+      setModes(modes.filter(m => m.id !== mode.id));
+      setToast({ message: `${mode.name} deleted`, type: 'success' });
+    } catch {
+      setToast({ message: 'Failed to delete', type: 'error' });
+    }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (currentMode) {
-      const updatedModes = modes.map(m => 
-        m.id === currentMode.id ? { ...m, ...formData } : m
-      );
-      setModes(updatedModes);
-      setToast({ message: `${formData.name} updated`, type: 'success' });
-    } else {
-      const newMode = {
-        id: Math.max(...modes.map(m => m.id)) + 1,
-        ...formData
-      };
-      setModes([...modes, newMode]);
-      setToast({ message: `${formData.name} added`, type: 'success' });
+    try {
+      if (currentMode) {
+        await apiClient.put(`/option-sets/${currentMode.id}`, {
+          name: formData.name,
+          description: formData.description,
+          optionSetName: 'Service-Mode',
+          isActive: formData.status === 'Active'
+        });
+        setModes(modes.map(m => m.id === currentMode.id ? { ...m, ...formData } : m));
+        setToast({ message: `${formData.name} updated`, type: 'success' });
+      } else {
+        const res = await apiClient.post('/option-sets', {
+          name: formData.name,
+          description: formData.description,
+          optionSetName: 'Service-Mode',
+          isActive: formData.status === 'Active'
+        });
+        const created = res.data;
+        setModes([...modes, { id: created.id, name: created.name, description: created.description || '', status: created.isActive ? 'Active' : 'Inactive' }]);
+        setToast({ message: `${formData.name} added`, type: 'success' });
+      }
+    } catch {
+      setToast({ message: 'Failed to save', type: 'error' });
     }
     setIsModalOpen(false);
   };
