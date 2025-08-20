@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   MessageSquareIcon, 
   PlusIcon, 
@@ -8,58 +8,31 @@ import {
   EyeIcon,
   SearchIcon 
 } from '../../components/icons/SVGIcons';
+import apiClient from '../../lib/apiClient';
 
 const SMSTemplates = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [templates, setTemplates] = useState([
-    {
-      id: 1,
-      name: 'Delivery Notification',
-      category: 'Delivery',
-      content: 'Your package #{ORDER_ID} is out for delivery. Expected arrival: {ETA}. Track: {TRACKING_URL}',
-      variables: ['ORDER_ID', 'ETA', 'TRACKING_URL'],
-      usage: 245,
-      lastUsed: '2024-01-15 10:30',
-      status: 'Active'
-    },
-    {
-      id: 2,
-      name: 'Pickup Reminder',
-      category: 'Pickup',
-      content: 'Reminder: Your pickup is scheduled for {DATE} at {TIME}. Address: {ADDRESS}',
-      variables: ['DATE', 'TIME', 'ADDRESS'],
-      usage: 189,
-      lastUsed: '2024-01-14 16:45',
-      status: 'Active'
-    },
-    {
-      id: 3,
-      name: 'Delay Alert',
-      category: 'Alert',
-      content: 'Alert: Delivery delay for order #{ORDER_ID}. New ETA: {NEW_ETA}. Reason: {REASON}',
-      variables: ['ORDER_ID', 'NEW_ETA', 'REASON'],
-      usage: 67,
-      lastUsed: '2024-01-12 09:20',
-      status: 'Active'
-    },
-    {
-      id: 4,
-      name: 'Completion Confirmation',
-      category: 'Delivery',
-      content: 'Delivered! Your order #{ORDER_ID} has been successfully delivered to {ADDRESS}',
-      variables: ['ORDER_ID', 'ADDRESS'],
-      usage: 312,
-      lastUsed: '2024-01-15 14:15',
-      status: 'Active'
-    }
-  ]);
+  const [templates, setTemplates] = useState([]);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const { data } = await apiClient.get('/sms-templates');
+        setTemplates(data || []);
+      } catch (err) {
+        console.error('Failed to load SMS templates', err);
+      }
+    };
+    load();
+  }, []);
 
   const categories = ['all', 'Delivery', 'Pickup', 'Alert', 'General'];
 
   // CRUD Operations
-  const handleCreate = () => {
-    alert('Create new template functionality would be implemented here');
+  const handleCreate = async () => {
+    // Implement as needed; backend has preview but not create in this controller
+    alert('Create template not implemented on backend');
   };
 
   const handlePreview = (template) => {
@@ -70,9 +43,13 @@ const SMSTemplates = () => {
     alert(`Editing template: ${template.name}`);
   };
 
-  const handleDelete = (id) => {
-    if (window.confirm('Are you sure you want to delete this template?')) {
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this template?')) return;
+    try {
+      await apiClient.delete(`/sms-templates/${id}`);
       setTemplates(templates.filter(t => t.id !== id));
+    } catch (err) {
+      console.error('Failed to delete template', err);
     }
   };
 

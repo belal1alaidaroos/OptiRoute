@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   BellIcon, 
   PlusIcon, 
@@ -12,34 +12,24 @@ import {
   CheckCircleIcon,
   ClockIcon
 } from '../../components/icons/SVGIcons';
+import apiClient from '../../lib/apiClient';
 
 const GlobalNotificationsFixed = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedType, setSelectedType] = useState('all');
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      title: 'System Maintenance Scheduled',
-      message: 'System will be down for maintenance on Jan 20, 2024 from 2:00 AM to 4:00 AM',
-      type: 'System',
-      priority: 'High',
-      status: 'Active',
-      createdAt: '2024-01-15 10:30',
-      recipients: 'All Users',
-      channels: ['Email', 'SMS', 'Push']
-    },
-    {
-      id: 2,
-      title: 'New Feature Release',
-      message: 'Advanced route optimization features are now available',
-      type: 'Feature',
-      priority: 'Medium',
-      status: 'Sent',
-      createdAt: '2024-01-14 14:20',
-      recipients: 'Managers, Dispatchers',
-      channels: ['Email', 'Push']
-    }
-  ]);
+  const [notifications, setNotifications] = useState([]);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const { data } = await apiClient.get('/global-notifications');
+        setNotifications(data || []);
+      } catch (err) {
+        console.error('Failed to load global notifications', err);
+      }
+    };
+    load();
+  }, []);
 
   const types = ['all', 'System', 'Feature', 'Alert', 'Maintenance'];
 
@@ -56,9 +46,13 @@ const GlobalNotificationsFixed = () => {
     alert(`Editing notification: ${notification.title}`);
   };
 
-  const handleDelete = (id) => {
-    if (window.confirm('Are you sure you want to delete this global notification?')) {
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this global notification?')) return;
+    try {
+      await apiClient.delete(`/global-notifications/${id}`);
       setNotifications(notifications.filter(n => n.id !== id));
+    } catch (err) {
+      console.error('Failed to delete global notification', err);
     }
   };
 
