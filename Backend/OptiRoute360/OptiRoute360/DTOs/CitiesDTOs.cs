@@ -24,6 +24,8 @@ public class CreateCityDto {
     public string PostalCode { get; set; }
     public string Status { get; set; }
     public string Timezone { get; set; }
+    public string Priority { get; set; }
+    public string Description { get; set; }
 }
 
 public class UpdateCityDto {
@@ -32,4 +34,8 @@ public class UpdateCityDto {
     public Guid? RegionId { get; set; }
     public Guid? CountryId { get; set; }
     public string Status { get; set; }
+    public string PostalCode { get; set; }
+    public string Timezone { get; set; }
+    public string Priority { get; set; }
+    public string Description { get; set; }
 }

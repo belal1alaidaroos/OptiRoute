@@ -11,10 +11,12 @@ public class MappingProfile : Profile
 
         // Drivers
         CreateMap<Driver, DriverDto>()
+            .ForMember(d => d.LicenseNumber, o => o.MapFrom(s => s.License))
             .ForMember(d => d.LicenseTypeName, o => o.MapFrom(s => s.LicenseType.Name))
             .ForMember(d => d.VehicleTypeName, o => o.MapFrom(s => s.VehicleType.Name))
             .ForMember(d => d.HubName, o => o.MapFrom(s => s.Hub.Name));
-        CreateMap<CreateDriverDto, Driver>();
+        CreateMap<CreateDriverDto, Driver>()
+            .ForMember(d => d.License, o => o.MapFrom(s => s.LicenseNumber));
         CreateMap<UpdateDriverDto, Driver>();
 
         // Vehicles
@@ -61,6 +63,13 @@ public class MappingProfile : Profile
             .ForMember(d => d.CountryName, o => o.MapFrom(s => s.Country.Name));
         CreateMap<CreateRegionDto, Region>();
         CreateMap<UpdateRegionDto, Region>();
+
+        // Cities
+        CreateMap<City, CityDto>()
+            .ForMember(d => d.RegionName, o => o.MapFrom(s => s.Region.Name))
+            .ForMember(d => d.CountryName, o => o.MapFrom(s => s.Country.Name));
+        CreateMap<CreateCityDto, City>();
+        CreateMap<UpdateCityDto, City>();
     }
 }
 
