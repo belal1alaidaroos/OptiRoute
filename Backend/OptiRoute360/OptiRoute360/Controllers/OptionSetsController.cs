@@ -3,6 +3,7 @@ using OptiRoute360.Data.Repositories;
 using AutoMapper;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 
 namespace OptiRoute360.Controllers
 {
@@ -13,11 +14,13 @@ namespace OptiRoute360.Controllers
     public class OptionSetsController : ControllerBase
     {
         private readonly IRepository<OptionSetValue> _repository;
+        private readonly ApplicationDbContext _db;
         private readonly IMapper _mapper;
 
-        public OptionSetsController(IRepository<OptionSetValue> repository, IMapper mapper)
+        public OptionSetsController(IRepository<OptionSetValue> repository, ApplicationDbContext db, IMapper mapper)
         {
             _repository = repository;
+            _db = db;
             _mapper = mapper;
         }
 
@@ -26,6 +29,49 @@ namespace OptiRoute360.Controllers
         {
             var items = await _repository.GetAllAsync();
             return Ok(items);
+        }
+
+        // GET api/v1/option-sets/effective?name=Priority&ownerEntity=Vehicle&ownerId=...&active=true
+        [HttpGet("effective")]
+        public async Task<ActionResult<IEnumerable<OptionSetValue>>> GetEffective(
+            [FromQuery] string name,
+            [FromQuery] string ownerEntity = null,
+            [FromQuery] Guid? ownerId = null,
+            [FromQuery] bool active = true)
+        {
+            if (string.IsNullOrWhiteSpace(name)) return BadRequest("Missing option set name");
+
+            var tenantId = HttpContext.RequestServices.GetRequiredService<ICurrentUserService>().GetTenantId();
+
+            var baseQuery = _db.OptionSetValues.AsQueryable()
+                .Where(o => o.OptionSetName == name)
+                .Where(o => o.TenantId == tenantId || o.IsGeneral);
+
+            if (active)
+                baseQuery = baseQuery.Where(o => o.IsActive);
+
+            var globals = baseQuery.Where(o => o.IsGeneral);
+            var tenantLevel = baseQuery.Where(o => !o.IsGeneral && o.OwnerEntity == null && o.OwnerId == null);
+            var entityLevel = ownerEntity == null ? Enumerable.Empty<OptionSetValue>().AsQueryable()
+                : baseQuery.Where(o => o.OwnerEntity == ownerEntity && o.OwnerId == null);
+            var recordLevel = ownerEntity != null && ownerId.HasValue ? baseQuery.Where(o => o.OwnerEntity == ownerEntity && o.OwnerId == ownerId)
+                : Enumerable.Empty<OptionSetValue>().AsQueryable();
+
+            var all = await globals
+                .Union(tenantLevel)
+                .Union(entityLevel)
+                .Union(recordLevel)
+                .OrderBy(o => o.SortOrder).ThenBy(o => o.Name)
+                .ToListAsync();
+
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var effective = new List<OptionSetValue>();
+            foreach (var o in all)
+            {
+                var key = (o.Code ?? o.Name ?? o.Id.ToString()).ToLowerInvariant();
+                if (seen.Add(key)) effective.Add(o);
+            }
+            return Ok(effective);
         }
 
         [HttpGet("{id}")]
@@ -52,9 +98,11 @@ namespace OptiRoute360.Controllers
             var entity = await _repository.GetByIdAsync(id);
             if (entity == null) return NotFound();
             entity.Name = update.Name;
-            entity.Category = update.Category;
-            entity.Code = update.Code;
-            entity.Description = update.Description;
+            entity.OptionSetName = update.OptionSetName;
+            entity.AlternativeName = update.AlternativeName;
+            entity.Value = update.Value;
+            entity.IsGeneral = update.IsGeneral;
+            entity.IsActive = update.IsActive;
             await _repository.UpdateAsync(entity);
             return NoContent();
         }

@@ -50,13 +50,17 @@ namespace OptiRoute360.Controllers
             var entity = await _repository.GetByIdAsync(id);
             if (entity == null) return NotFound();
 
-            entity.VehicleId = update.VehicleId;
+            entity.TripId = update.TripId;
+            entity.Status = update.Status;
+            entity.Progress = update.Progress;
             entity.DriverId = update.DriverId;
-            entity.Latitude = update.Latitude;
-            entity.Longitude = update.Longitude;
-            entity.Speed = update.Speed;
-            entity.Direction = update.Direction;
-            entity.TrackedAt = update.TrackedAt;
+            entity.HubId = update.HubId;
+            entity.PeriodId = update.PeriodId;
+            entity.StartTime = update.StartTime;
+            entity.EndTime = update.EndTime;
+            entity.DeliveredPackages = update.DeliveredPackages;
+            entity.TotalPackages = update.TotalPackages;
+            entity.Locations = update.Locations;
             await _repository.UpdateAsync(entity);
             return NoContent();
         }
