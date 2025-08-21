@@ -241,6 +241,15 @@ namespace OptiRoute360.Data
                         await _context.SaveChangesAsync();
                     }
                 }
+                
+                // Ensure Tenant.CreatedBy is a real user (replace Guid.Empty placeholder)
+                var seededTenant = await _context.TenantManagements.FirstAsync();
+                if (seededTenant.CreatedBy == Guid.Empty)
+                {
+                    seededTenant.CreatedBy = adminUser!.Id;
+                    _context.TenantManagements.Update(seededTenant);
+                    await _context.SaveChangesAsync();
+                }
 
                 // 4) Seed reference data: LicenseTypes, VehicleTypes, Periods
                 if (!await _context.LicenseTypes.AnyAsync(l => l.TenantId == tenantId))
@@ -319,6 +328,7 @@ namespace OptiRoute360.Data
 
                 if (!await _context.Hubs.AnyAsync(h => h.TenantId == tenantId))
                 {
+                    await DisableHubNearestWarehouseConstraint();
                     var hubId = Guid.NewGuid();
                     var now = DateTime.UtcNow;
                     var hub = new Hub
@@ -345,7 +355,7 @@ namespace OptiRoute360.Data
                         Address = "King Fahd Rd, Riyadh",
                         ZoneId = zone.Id,
                         CoverageRadius = 25.5m,
-                        NearestWarehouseId = hubId, // self-referencing
+                        NearestWarehouseId = hubId, // set self-reference while FK is disabled
                         AccessibilityNotes = "Easy truck access",
                         HubCode = "RYD-MAIN",
                         OperationalSince = now.AddYears(-2),
@@ -369,6 +379,7 @@ namespace OptiRoute360.Data
                     };
                     _context.Hubs.Add(hub);
                     await _context.SaveChangesAsync();
+                    await ReenableHubNearestWarehouseConstraint();
                 }
 
                 // 6) Seed Driver
@@ -565,6 +576,24 @@ namespace OptiRoute360.Data
             try
             {
                 await _context.Database.ExecuteSqlRawAsync("ALTER TABLE [TenantManagements] WITH CHECK CHECK CONSTRAINT [FK_TenantManagements_Countries_CountryId]");
+            }
+            catch {}
+        }
+
+        private async Task DisableHubNearestWarehouseConstraint()
+        {
+            try
+            {
+                await _context.Database.ExecuteSqlRawAsync("ALTER TABLE [Hubs] NOCHECK CONSTRAINT [FK_Hubs_Hubs_NearestWarehouseId]");
+            }
+            catch {}
+        }
+
+        private async Task ReenableHubNearestWarehouseConstraint()
+        {
+            try
+            {
+                await _context.Database.ExecuteSqlRawAsync("ALTER TABLE [Hubs] WITH CHECK CHECK CONSTRAINT [FK_Hubs_Hubs_NearestWarehouseId]");
             }
             catch {}
         }
