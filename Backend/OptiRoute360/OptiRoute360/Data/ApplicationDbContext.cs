@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using OptiRoute360.Data.Entities;
 using OptiRoute360.Models.Interfaces;
 using OptiRoute360.Services;
@@ -186,6 +186,14 @@ namespace OptiRoute360.Data
             ConfigureAttachmentRelationships(modelBuilder);
             ConfigureLogRelationships(modelBuilder);
             // ConfigureServiceRelationships(modelBuilder); // if exists
+
+            // OptionSetValue indexing and uniqueness per scope
+            modelBuilder.Entity<OptionSetValue>(entity =>
+            {
+                entity.HasIndex(o => new { o.TenantId, o.OptionSetName, o.OwnerEntity, o.OwnerId, o.IsActive, o.SortOrder });
+                entity.HasIndex(o => new { o.TenantId, o.OptionSetName, o.OwnerEntity, o.OwnerId, o.Code }).IsUnique(false);
+                entity.HasIndex(o => new { o.TenantId, o.OptionSetName, o.OwnerEntity, o.OwnerId, o.Name }).IsUnique(false);
+            });
         }
 
         //protected override void OnModelCreating(ModelBuilder modelBuilder)
