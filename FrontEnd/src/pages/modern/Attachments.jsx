@@ -291,7 +291,7 @@ const AttachmentsFixed = () => {
               borderRadius: '16px',
               padding: '24px',
               boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-              border: '1px solid '#E5E7EB',
+              border: '1px solid #E5E7EB',
               transition: 'transform 0.2s, box-shadow 0.2s'
             }}
             onMouseOver={(e) => {
