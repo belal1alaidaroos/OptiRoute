@@ -4,6 +4,9 @@ using AutoMapper;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using OptiRoute360.Data;
+using OptiRoute360.Services;
 
 namespace OptiRoute360.Controllers
 {
@@ -41,7 +44,7 @@ namespace OptiRoute360.Controllers
         {
             if (string.IsNullOrWhiteSpace(name)) return BadRequest("Missing option set name");
 
-            var tenantId = HttpContext.RequestServices.GetRequiredService<ICurrentUserService>().GetTenantId();
+            var tenantId = HttpContext.RequestServices.GetRequiredService<ICurrentUserService>().TenantId;
 
             var baseQuery = _db.OptionSetValues.AsQueryable()
                 .Where(o => o.OptionSetName == name)
