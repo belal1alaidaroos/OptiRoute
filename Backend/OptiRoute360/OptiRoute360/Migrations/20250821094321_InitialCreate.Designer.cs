@@ -12,7 +12,7 @@ using OptiRoute360.Data;
 namespace OptiRoute360.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250802080819_InitialCreate")]
+    [Migration("20250821094321_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -2248,6 +2248,10 @@ namespace OptiRoute360.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -2269,6 +2273,10 @@ namespace OptiRoute360.Migrations
                     b.Property<bool>("IsGeneral")
                         .HasColumnType("bit");
 
+                    b.Property<string>("Metadata")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime?>("ModifiedAt")
                         .HasColumnType("datetime2");
 
@@ -2277,14 +2285,21 @@ namespace OptiRoute360.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("OptionSetName")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
-                    b.Property<Guid>("TableId")
+                    b.Property<string>("OwnerEntity")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<Guid?>("OwnerId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
 
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uniqueidentifier");
@@ -2292,12 +2307,16 @@ namespace OptiRoute360.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("Value")
+                    b.Property<int?>("Value")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("TenantId");
+                    b.HasIndex("TenantId", "OptionSetName", "OwnerEntity", "OwnerId", "Code");
+
+                    b.HasIndex("TenantId", "OptionSetName", "OwnerEntity", "OwnerId", "Name");
+
+                    b.HasIndex("TenantId", "OptionSetName", "OwnerEntity", "OwnerId", "IsActive", "SortOrder");
 
                     b.ToTable("OptionSetValues");
                 });

@@ -140,7 +140,7 @@ namespace OptiRoute360.Data
                 var existingCountryId = await _context.Countries.Where(c => c.TenantId == tenantId && c.Code == "SA").Select(c => c.Id).FirstOrDefaultAsync();
                 if (existingCountryId == Guid.Empty)
                 {
-                    var country = new Country
+                    var newCountry = new Country
                     {
                         Id = Guid.NewGuid(),
                         TenantId = tenantId,
@@ -155,7 +155,7 @@ namespace OptiRoute360.Data
                         Timezone = "+03:00",
                         Description = "Kingdom of Saudi Arabia"
                     };
-                    _context.Countries.Add(country);
+                    _context.Countries.Add(newCountry);
                     await _context.SaveChangesAsync();
                 }
 
@@ -365,7 +365,7 @@ namespace OptiRoute360.Data
                         StorageCapacity = 10000,
                         ActiveVehiclesCount = 0,
                         ActiveDriversCount = 0,
-                        FuelStorageCapacity = 50000m,
+                        FuelStorageCapacity = 500m,
                         SpecialEquipment = "Forklifts",
                         EmergencyContact = "+966-11-000-0000",
                         ComplianceCertificates = "ISO9001",
@@ -373,8 +373,8 @@ namespace OptiRoute360.Data
                         HasAutomatedSorting = true,
                         IntegratedSystems = "WMS,TMS",
                         LastSystemSync = now,
-                        OperatingCostPerMonth = 250000m,
-                        RevenuePerMonth = 400000m,
+                        OperatingCostPerMonth = 250m,
+                        RevenuePerMonth = 40m,
                         BudgetCode = "HUB-RYD-001"
                     };
                     _context.Hubs.Add(hub);
@@ -490,7 +490,7 @@ namespace OptiRoute360.Data
                     {
                         Id = Guid.NewGuid(), TenantId = tenantId, CreatedAt = DateTime.UtcNow, CreatedBy = adminUser!.Id,
                         VehicleId = vehicleId, MaintenanceTypeId = mtId,
-                        IntervalType = "Mileage", IntervalValue = 10000,
+                        IntervalType = "Mileage", IntervalValue = 1000,
                         LastPerformed = DateTime.UtcNow.AddMonths(-2),
                         NextDue = DateTime.UtcNow.AddMonths(1),
                         Status = "Scheduled", Notes = "Initial schedule",

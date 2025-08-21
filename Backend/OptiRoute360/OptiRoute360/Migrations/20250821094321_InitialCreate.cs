@@ -598,13 +598,17 @@ namespace OptiRoute360.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    TableId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    OptionSetName = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    OptionSetName = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    OwnerEntity = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    OwnerId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    Name = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     AlternativeName = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Value = table.Column<int>(type: "int", nullable: false),
+                    Code = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    Value = table.Column<int>(type: "int", nullable: true),
+                    SortOrder = table.Column<int>(type: "int", nullable: false),
                     IsGeneral = table.Column<bool>(type: "bit", nullable: false),
                     IsActive = table.Column<bool>(type: "bit", nullable: false),
+                    Metadata = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     ModifiedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
@@ -2330,9 +2334,19 @@ namespace OptiRoute360.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_OptionSetValues_TenantId",
+                name: "IX_OptionSetValues_TenantId_OptionSetName_OwnerEntity_OwnerId_Code",
                 table: "OptionSetValues",
-                column: "TenantId");
+                columns: new[] { "TenantId", "OptionSetName", "OwnerEntity", "OwnerId", "Code" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_OptionSetValues_TenantId_OptionSetName_OwnerEntity_OwnerId_IsActive_SortOrder",
+                table: "OptionSetValues",
+                columns: new[] { "TenantId", "OptionSetName", "OwnerEntity", "OwnerId", "IsActive", "SortOrder" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_OptionSetValues_TenantId_OptionSetName_OwnerEntity_OwnerId_Name",
+                table: "OptionSetValues",
+                columns: new[] { "TenantId", "OptionSetName", "OwnerEntity", "OwnerId", "Name" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_Periods_TenantId",

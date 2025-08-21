@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <Folder Include="Data\Stores\" />
+    <Folder Include="Migrations\" />
     <Folder Include="Models\Interfaces\Repositories\" />
   </ItemGroup>
 
