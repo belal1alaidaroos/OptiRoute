@@ -84,17 +84,20 @@ namespace OptiRoute360.Data
 
                 var tenantIdValue = await _context.TenantManagements.Select(t => t.Id).FirstAsync();
 
-                // Seed OptionSets
+                // Seed OptionSets (global defaults and tenant-level)
                 if (!await _context.OptionSetValues.AnyAsync())
                 {
                     _logger.LogInformation("Seeding option sets...");
                     await _context.OptionSetValues.AddRangeAsync(new[]
                     {
-                        new OptionSetValue { Id = Guid.NewGuid(), TenantId = tenantIdValue, Category = "Status", Code = "Active", Name = "Active" },
-                        new OptionSetValue { Id = Guid.NewGuid(), TenantId = tenantIdValue, Category = "Status", Code = "Inactive", Name = "Inactive" },
-                        new OptionSetValue { Id = Guid.NewGuid(), TenantId = tenantIdValue, Category = "Priority", Code = "High", Name = "High" },
-                        new OptionSetValue { Id = Guid.NewGuid(), TenantId = tenantIdValue, Category = "Priority", Code = "Medium", Name = "Medium" },
-                        new OptionSetValue { Id = Guid.NewGuid(), TenantId = tenantIdValue, Category = "Priority", Code = "Low", Name = "Low" },
+                        // Status (global)
+                        new OptionSetValue { Id = Guid.NewGuid(), TenantId = tenantIdValue, OptionSetName = "Status", Name = "Active", Code = "ACTIVE", IsGeneral = true, IsActive = true, SortOrder = 1 },
+                        new OptionSetValue { Id = Guid.NewGuid(), TenantId = tenantIdValue, OptionSetName = "Status", Name = "Inactive", Code = "INACTIVE", IsGeneral = true, IsActive = true, SortOrder = 2 },
+
+                        // Priority (tenant-level)
+                        new OptionSetValue { Id = Guid.NewGuid(), TenantId = tenantIdValue, OptionSetName = "Priority", Name = "High", Code = "HIGH", IsGeneral = false, IsActive = true, SortOrder = 1 },
+                        new OptionSetValue { Id = Guid.NewGuid(), TenantId = tenantIdValue, OptionSetName = "Priority", Name = "Medium", Code = "MEDIUM", IsGeneral = false, IsActive = true, SortOrder = 2 },
+                        new OptionSetValue { Id = Guid.NewGuid(), TenantId = tenantIdValue, OptionSetName = "Priority", Name = "Low", Code = "LOW", IsGeneral = false, IsActive = true, SortOrder = 3 },
                     });
                     await _context.SaveChangesAsync();
                 }
@@ -186,7 +189,7 @@ namespace OptiRoute360.Data
                         Id = hubId,
                         TenantId = tenantIdValue,
                         Name = "Riyadh Main Hub",
-                        Code = "RYD",
+                        HubCode = "RYD",
                         CityId = riyadhCityId,
                         Latitude = 24.7136m,
                         Longitude = 46.6753m
