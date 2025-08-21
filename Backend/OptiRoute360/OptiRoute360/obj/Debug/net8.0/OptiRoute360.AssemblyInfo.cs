@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("OptiRoute360")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+6f96822cfa4d794c4cfe9f3eeb638f01147c5acd")]
 [assembly: System.Reflection.AssemblyProductAttribute("OptiRoute360")]
 [assembly: System.Reflection.AssemblyTitleAttribute("OptiRoute360")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -1,4 +1,5 @@
 using AutoMapper;
+using OptiRoute360.Data.Entities;
 
 public class MappingProfile : Profile
 {

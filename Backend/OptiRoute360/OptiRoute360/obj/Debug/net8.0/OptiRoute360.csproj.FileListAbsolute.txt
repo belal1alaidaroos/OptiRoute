@@ -359,3 +359,4 @@ D:\Code\GitHub\RouteOptmization\Backend\OptiRoute360\OptiRoute360\obj\Debug\net8
 D:\Code\GitHub\RouteOptmization\Backend\OptiRoute360\OptiRoute360\obj\Debug\net8.0\OptiRoute360.pdb
 D:\Code\GitHub\RouteOptmization\Backend\OptiRoute360\OptiRoute360\obj\Debug\net8.0\OptiRoute360.genruntimeconfig.cache
 D:\Code\GitHub\RouteOptmization\Backend\OptiRoute360\OptiRoute360\obj\Debug\net8.0\ref\OptiRoute360.dll
+D:\Code\GitHub\RouteOptmization\Backend\OptiRoute360\OptiRoute360\obj\Debug\net8.0\OptiRoute360.sourcelink.json

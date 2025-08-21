@@ -58,7 +58,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 2,
+          "SelectedChildIndex": 3,
           "Children": [
             {
               "$type": "Bookmark",
@@ -69,6 +69,10 @@
               "Name": "ST:0:0:{56df62a4-05a3-4e5b-aa1a-99371ccfb997}"
             },
             {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{1c4feeaa-4718-4aa9-859d-94ce25d182ba}"
+            },
+            {
               "$type": "Document",
               "DocumentIndex": 0,
               "Title": "appsettings.json",
@@ -76,7 +80,7 @@
               "RelativeDocumentMoniker": "OptiRoute360\\appsettings.json",
               "ToolTip": "D:\\Code\\GitHub\\RouteOptmization\\Backend\\OptiRoute360\\OptiRoute360\\appsettings.json",
               "RelativeToolTip": "OptiRoute360\\appsettings.json",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAsAAAABAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAMAAAAEAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
               "WhenOpened": "2025-08-11T12:22:57.446Z",
               "EditorCaption": ""
@@ -89,9 +93,10 @@
               "RelativeDocumentMoniker": "OptiRoute360\\DTOs\\HubsDTOs.cs",
               "ToolTip": "D:\\Code\\GitHub\\RouteOptmization\\Backend\\OptiRoute360\\OptiRoute360\\DTOs\\HubsDTOs.cs",
               "RelativeToolTip": "OptiRoute360\\DTOs\\HubsDTOs.cs",
-              "ViewState": "AgIAABYAAAAAAAAAAAAAAB4AAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAABMAAAAAAAAAAEBUwB4AAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-08-03T16:00:18.87Z"
+              "WhenOpened": "2025-08-03T16:00:18.87Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -103,7 +108,8 @@
               "RelativeToolTip": "OptiRoute360\\Controllers\\HubsController.cs",
               "ViewState": "AgIAAEYAAAAAAAAAAAAuwFkAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-08-03T15:58:12.213Z"
+              "WhenOpened": "2025-08-03T15:58:12.213Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -113,9 +119,10 @@
               "RelativeDocumentMoniker": "OptiRoute360\\Controllers\\GlobalNotificationsController.cs",
               "ToolTip": "D:\\Code\\GitHub\\RouteOptmization\\Backend\\OptiRoute360\\OptiRoute360\\Controllers\\GlobalNotificationsController.cs",
               "RelativeToolTip": "OptiRoute360\\Controllers\\GlobalNotificationsController.cs",
-              "ViewState": "AgIAAA8AAAAAAAAAAAA2wBkAAAAhAAAAAAAAAA==",
+              "ViewState": "AgIAABAAAAAAAAAAAAAUwBkAAAAhAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-08-03T15:56:57.123Z"
+              "WhenOpened": "2025-08-03T15:56:57.123Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -127,7 +134,8 @@
               "RelativeToolTip": "OptiRoute360\\Controllers\\GeoZonesController.cs",
               "ViewState": "AgIAAAkAAAAAAAAAAAAmwB0AAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-08-03T15:55:07.818Z"
+              "WhenOpened": "2025-08-03T15:55:07.818Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -139,7 +147,8 @@
               "RelativeToolTip": "OptiRoute360\\Controllers\\GeneralSettingsController.cs",
               "ViewState": "AgIAAAkAAAAAAAAAAAAmwBAAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-08-03T15:53:00.857Z"
+              "WhenOpened": "2025-08-03T15:53:00.857Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -151,7 +160,8 @@
               "RelativeToolTip": "OptiRoute360\\Controllers\\FuelsTypeController.cs",
               "ViewState": "AgIAABQAAAAAAAAAAAAqwBsAAAAoAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-08-03T15:42:13.318Z"
+              "WhenOpened": "2025-08-03T15:42:13.318Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -163,7 +173,8 @@
               "RelativeToolTip": "OptiRoute360\\Controllers\\FuelManagementController.cs",
               "ViewState": "AgIAABcAAAAAAAAAAAAcwBgAAAALAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-08-03T15:34:44.808Z"
+              "WhenOpened": "2025-08-03T15:34:44.808Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -175,7 +186,8 @@
               "RelativeToolTip": "OptiRoute360\\Controllers\\CountriesController.cs",
               "ViewState": "AgIAABkAAAAAAAAAAAAQwCUAAABHAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-08-03T10:59:54.725Z"
+              "WhenOpened": "2025-08-03T10:59:54.725Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -185,9 +197,10 @@
               "RelativeDocumentMoniker": "OptiRoute360\\Program.cs",
               "ToolTip": "D:\\Code\\GitHub\\RouteOptmization\\Backend\\OptiRoute360\\OptiRoute360\\Program.cs",
               "RelativeToolTip": "OptiRoute360\\Program.cs",
-              "ViewState": "AgIAAD4AAAAAAAAAAAAewEgAAAASAAAAAAAAAA==",
+              "ViewState": "AgIAAD4AAAAAAAAAAAAewEgAAAAEAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-08-03T10:37:26.575Z"
+              "WhenOpened": "2025-08-03T10:37:26.575Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -199,7 +212,8 @@
               "RelativeToolTip": "OptiRoute360\\Controllers\\CitiesController.cs",
               "ViewState": "AgIAAB8AAAAAAAAAAAAiwCoAAABGAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-08-03T10:18:29.632Z"
+              "WhenOpened": "2025-08-03T10:18:29.632Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -209,9 +223,20 @@
               "RelativeDocumentMoniker": "OptiRoute360\\Controllers\\DriversController.cs",
               "ToolTip": "D:\\Code\\GitHub\\RouteOptmization\\Backend\\OptiRoute360\\OptiRoute360\\Controllers\\DriversController.cs",
               "RelativeToolTip": "OptiRoute360\\Controllers\\DriversController.cs",
-              "ViewState": "AgIAAAwAAAAAAAAAAAAAABUAAAA1AAAAAAAAAA==",
+              "ViewState": "AgIAAAkAAAAAAAAAAIBJwBUAAAA1AAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-08-03T09:52:02.311Z"
+              "WhenOpened": "2025-08-03T09:52:02.311Z",
+              "EditorCaption": ""
+            }
+          ]
+        },
+        {
+          "DockedWidth": 1243,
+          "SelectedChildIndex": -1,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{004be353-6879-467c-9d1e-9ac23cdf6d49}"
             }
           ]
         }
