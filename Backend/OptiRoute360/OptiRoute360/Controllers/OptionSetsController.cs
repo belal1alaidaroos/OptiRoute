@@ -52,9 +52,11 @@ namespace OptiRoute360.Controllers
             var entity = await _repository.GetByIdAsync(id);
             if (entity == null) return NotFound();
             entity.Name = update.Name;
-            entity.Category = update.Category;
-            entity.Code = update.Code;
-            entity.Description = update.Description;
+            entity.OptionSetName = update.OptionSetName;
+            entity.AlternativeName = update.AlternativeName;
+            entity.Value = update.Value;
+            entity.IsGeneral = update.IsGeneral;
+            entity.IsActive = update.IsActive;
             await _repository.UpdateAsync(entity);
             return NoContent();
         }

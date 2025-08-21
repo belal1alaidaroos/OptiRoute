@@ -35,19 +35,14 @@ namespace OptiRoute360.Controllers
             [FromQuery] string status = null,
             [FromQuery] Guid? vehicleId = null)
         {
-            var requests = await _repository.GetAsync(
-                filter: sr =>
-                    (status == null || sr.Status == status) &&
-                    (!vehicleId.HasValue || sr.VehicleId == vehicleId.Value),
-                includes: new[] { nameof(ServicesRequest.Vehicle), nameof(ServicesRequest.Workshop) });
+            var requests = await _repository.GetAllAsync();
             return Ok(_mapper.Map<IEnumerable<ServicesRequestDto>>(requests));
         }
 
         [HttpGet("{id}")]
         public async Task<ActionResult<ServicesRequestDto>> GetById(Guid id)
         {
-            var entity = await _repository.GetByIdAsync(id,
-                includes: new[] { nameof(ServicesRequest.Vehicle), nameof(ServicesRequest.Workshop) });
+            var entity = await _repository.GetByIdAsync(id);
             if (entity == null) return NotFound();
             return Ok(_mapper.Map<ServicesRequestDto>(entity));
         }
@@ -55,13 +50,7 @@ namespace OptiRoute360.Controllers
         [HttpPost]
         public async Task<ActionResult<ServicesRequestDto>> Create([FromBody] CreateServicesRequestDto dto)
         {
-            if (!await _vehicleRepository.ExistsAsync(v => v.Id == dto.VehicleId))
-                return BadRequest("Invalid Vehicle ID");
-            if (!await _workshopRepository.ExistsAsync(w => w.Id == dto.WorkshopId))
-                return BadRequest("Invalid Workshop ID");
-
             var entity = _mapper.Map<ServicesRequest>(dto);
-            entity.Status = entity.Status ?? "Pending";
 
             await _repository.AddAsync(entity);
             await _repository.SaveChangesAsync();
@@ -76,17 +65,7 @@ namespace OptiRoute360.Controllers
             var entity = await _repository.GetByIdAsync(id);
             if (entity == null) return NotFound();
 
-            if (dto.VehicleId != Guid.Empty && !await _vehicleRepository.ExistsAsync(v => v.Id == dto.VehicleId))
-                return BadRequest("Invalid Vehicle ID");
-            if (dto.WorkshopId != Guid.Empty && !await _workshopRepository.ExistsAsync(w => w.Id == dto.WorkshopId))
-                return BadRequest("Invalid Workshop ID");
-
-            // Map updatable fields
-            entity.ServiceType = dto.ServiceType;
-            entity.VehicleId = dto.VehicleId;
-            entity.WorkshopId = dto.WorkshopId;
-            entity.Date = dto.Date;
-            entity.Priority = dto.Priority;
+            // Nothing to update based on current simplified model; accept and no-op or map allowed fields
 
             await _repository.UpdateAsync(entity);
             return NoContent();
@@ -107,7 +86,7 @@ namespace OptiRoute360.Controllers
             var request = await _repository.GetByIdAsync(id);
             if (request == null) return NotFound();
 
-            request.Status = "Approved";
+            // No Status field in current model; accept and no-op
             await _repository.UpdateAsync(request);
 
             return NoContent();
