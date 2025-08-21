@@ -3,6 +3,8 @@ using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using AutoMapper;
 using OptiRoute360.Data.Repositories;
+using OptiRoute360.Data.Entities;
+using OptiRoute360.DTOs.User;
 
 namespace OptiRoute360.Controllers
 {

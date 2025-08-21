@@ -2,6 +2,9 @@ using Microsoft.AspNetCore.Mvc;
 using OptiRoute360.Data.Repositories;  // Assuming your Repository is here
 using AutoMapper;
 using Asp.Versioning;  // For IMapper
+using Microsoft.AspNetCore.Authorization;
+using OptiRoute360.Data.Entities;
+using OptiRoute360.DTOs;
 
 namespace OptiRoute360.Controllers
 {
