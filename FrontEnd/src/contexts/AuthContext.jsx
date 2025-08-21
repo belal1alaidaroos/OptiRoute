@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import apiClientRoot from '../lib/apiClientRoot';
 
 const AuthContext = createContext();
 
@@ -73,8 +74,8 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     // Check for stored authentication
     const storedUser = localStorage.getItem('optiroute360_user');
-    const storedToken = localStorage.getItem('optiroute360_token');
-    
+    const storedToken = localStorage.getItem('access_token');
+
     if (storedUser && storedToken) {
       try {
         const userData = JSON.parse(storedUser);
@@ -83,41 +84,46 @@ export const AuthProvider = ({ children }) => {
       } catch (error) {
         console.error('Error parsing stored user data:', error);
         localStorage.removeItem('optiroute360_user');
-        localStorage.removeItem('optiroute360_token');
+        localStorage.removeItem('access_token');
       }
     }
-    
+
     setLoading(false);
   }, []);
 
   const login = async (username, password) => {
     try {
       setLoading(true);
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Check credentials
-      if (mockUsers[username] && mockCredentials[username] === password) {
-        const userData = mockUsers[username];
-        const mockToken = `mock_token_${username}_${Date.now()}`;
-        
-        // Store authentication data
-        localStorage.setItem('optiroute360_user', JSON.stringify(userData));
-        localStorage.setItem('optiroute360_token', mockToken);
-        
-        setUser(userData);
-        setIsAuthenticated(true);
-        
-        return { success: true, user: userData, token: mockToken };
-      } else {
-        throw new Error('Invalid credentials');
+
+      // Backend expects Email and Password; map username to email input
+      const response = await apiClientRoot.post('/auth/login', {
+        email: username,
+        password,
+      });
+
+      const token = response.data?.token || response.data?.Token;
+      const userData = response.data?.user || response.data?.User;
+      const appearance = response.data?.appearance || response.data?.Appearance;
+
+      if (!token || !userData) {
+        throw new Error('Invalid response from server');
       }
+
+      localStorage.setItem('access_token', token);
+      localStorage.setItem('optiroute360_user', JSON.stringify(userData));
+      if (appearance) {
+        localStorage.setItem('optiroute360_appearance', JSON.stringify(appearance));
+      }
+
+      setUser(userData);
+      setIsAuthenticated(true);
+
+      return { success: true, user: userData, token };
     } catch (error) {
       console.error('Login error:', error);
-      return { 
-        success: false, 
-        error: error.message || 'Login failed. Please check your credentials.' 
+      return {
+        success: false,
+        error: error?.response?.data?.message || error.message || 'Login failed. Please check your credentials.'
       };
     } finally {
       setLoading(false);
@@ -126,7 +132,8 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     localStorage.removeItem('optiroute360_user');
-    localStorage.removeItem('optiroute360_token');
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('optiroute360_appearance');
     setUser(null);
     setIsAuthenticated(false);
   };
