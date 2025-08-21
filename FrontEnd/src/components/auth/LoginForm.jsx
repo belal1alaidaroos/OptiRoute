@@ -100,7 +100,7 @@ const LoginForm = () => {
                   type="text"
                   value={credentials.username}
                   onChange={handleChange}
-                  placeholder={t('username')}
+                  placeholder={t('username') + ' / Email'}
                   required
                   className="h-11"
                   dir={isRTL ? 'rtl' : 'ltr'}
